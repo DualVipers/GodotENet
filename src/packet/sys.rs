@@ -2,7 +2,7 @@ const SYS_CMD_SIZE: usize = 6;
 
 use super::GodotENetPacket;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SysCommandPacket<'a> {
     /// The peer code within Godot
     ///
@@ -11,7 +11,7 @@ pub struct SysCommandPacket<'a> {
     pub sys_cmd: SysCommand<'a>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 // Yoinked from Godot's SceneMultiplayer::_process_packet
 pub enum SysCommand<'a> {
     SysCommandAuth,

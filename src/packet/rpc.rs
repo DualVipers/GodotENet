@@ -9,7 +9,7 @@ const NAME_ID_COMPRESSION_FLAG: u8 = 1 << NAME_ID_COMPRESSION_SHIFT;
 
 use super::GodotENetPacket;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RPCCommandHeader {
     pub node_id_compression: u8,
     pub node_id: u32,
