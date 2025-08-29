@@ -1,0 +1,11 @@
+[package]
+name = "godot_enet"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.27"
+rusty_enet = "0.4"
+
+[dev-dependencies]
+colog = "1.3.0"
