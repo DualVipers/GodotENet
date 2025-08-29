@@ -32,8 +32,8 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
 
     let node_id: u32 = match node_id_compression {
         0 => packet[1] as u32,
-        1 => u16::from_be_bytes([packet[1], packet[2]]) as u32,
-        2 => u32::from_be_bytes([packet[1], packet[2], packet[3], packet[4]]),
+        1 => u16::from_le_bytes([packet[1], packet[2]]) as u32,
+        2 => u32::from_le_bytes([packet[1], packet[2], packet[3], packet[4]]),
         _ => return Err("Invalid node_id_compression value".to_string()),
     };
 
@@ -44,7 +44,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
     let offset: usize = packet[1 + (1 << node_id_compression) as usize] as usize;
     let name_id: u32 = match name_id_compression {
         0 => packet[offset] as u32,
-        1 => u16::from_be_bytes([packet[offset], packet[1 + offset]]) as u32,
+        1 => u16::from_le_bytes([packet[offset], packet[1 + offset]]) as u32,
         _ => return Err("Invalid node_id_compression value".to_string()),
     };
 
@@ -77,10 +77,10 @@ pub fn gen_packet(packet: &RPCCommandHeader) -> Result<Vec<u8>, String> {
             out_packet.push(packet.node_id as u8);
         }
         1 => {
-            out_packet.extend_from_slice(&(packet.node_id as u16).to_be_bytes());
+            out_packet.extend_from_slice(&(packet.node_id as u16).to_le_bytes());
         }
         2 => {
-            out_packet.extend_from_slice(&packet.node_id.to_be_bytes());
+            out_packet.extend_from_slice(&packet.node_id.to_le_bytes());
         }
         _ => panic!("Invalid node_id_compression value"),
     }
@@ -90,7 +90,7 @@ pub fn gen_packet(packet: &RPCCommandHeader) -> Result<Vec<u8>, String> {
             out_packet.push(packet.name_id as u8);
         }
         1 => {
-            out_packet.extend_from_slice(&(packet.name_id as u16).to_be_bytes());
+            out_packet.extend_from_slice(&(packet.name_id as u16).to_le_bytes());
         }
         _ => panic!("Invalid name_id_compression value"),
     }

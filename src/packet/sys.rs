@@ -30,7 +30,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
         return Err("Packet too short to contain Godot ENet sys command header".to_string());
     }
 
-    let gdpeer: i32 = u32::from_be_bytes([packet[2], packet[3], packet[4], packet[5]]) as i32;
+    let gdpeer: i32 = u32::from_le_bytes([packet[2], packet[3], packet[4], packet[5]]) as i32;
 
     let sys_cmd = match packet[1] {
         0 => SysCommand::SysCommandAuth, // TODO: Reverse Engineer Auth Shit
@@ -78,7 +78,7 @@ pub fn gen_packet(packet: &SysCommandPacket) -> Result<Vec<u8>, String> {
         }
     }
 
-    out_packet.extend(&packet.gdpeer.to_be_bytes());
+    out_packet.extend(&packet.gdpeer.to_le_bytes());
 
     match packet.sys_cmd {
         SysCommand::SysCommandRelay { content } => {
