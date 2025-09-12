@@ -1,4 +1,4 @@
-use super::GodotENetPacket;
+use super::Packet;
 use crate::GDPeerID;
 
 const SYS_CMD_SIZE: usize = 6;
@@ -23,7 +23,7 @@ pub enum SysCommand {
 }
 
 // Heavily Uses SceneMultiplayer::_process_sys() in Godot to revese engineer the header
-pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
+pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     if packet.len() < SYS_CMD_SIZE {
         return Err("Packet too short to contain Godot ENet sys command header".to_string());
     }
@@ -38,7 +38,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
         _ => return Err(format!("Invalid value for Sys command: {}", packet[1])),
     };
 
-    Ok(GodotENetPacket::NetworkCommandSys(SysCommandPacket {
+    Ok(Packet::NetworkCommandSys(SysCommandPacket {
         gdpeer: GDPeerID(gdpeer),
         sys_cmd,
     }))

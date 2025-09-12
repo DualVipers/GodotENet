@@ -12,7 +12,7 @@ async fn main() {
     clog.filter(None, log::LevelFilter::Trace);
     clog.init();
 
-    let mut server = gd_enet::GodotENetServer::builder().build().unwrap();
+    let mut server = gd_enet::Server::builder().build().unwrap();
 
     server.open().unwrap();
 

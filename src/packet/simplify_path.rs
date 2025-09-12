@@ -1,7 +1,7 @@
-use super::GodotENetPacket;
+use super::Packet;
 
 // Based on Godot's SceneMultiplayer::_process_packet
-pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
+pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     if packet.len() < 38 {
         return Err("Packet too short to contain Godot ENet packet".to_string());
     }
@@ -15,7 +15,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
     let path = String::from_utf8(packet[38..].to_vec())
         .map_err(|_| "Failed to parse path as UTF-8".to_string())?;
 
-    Ok(GodotENetPacket::NetworkCommandSimplifyPath {
+    Ok(Packet::NetworkCommandSimplifyPath {
         methods_md5_hash,
         remote_cache_id,
         path,

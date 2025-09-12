@@ -1,8 +1,8 @@
-use super::GodotENetPacket;
+use super::Packet;
 
 // Heavily Uses SceneMultiplayer::_process_sys() in Godot to revese engineer the header
-pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
-    Ok(GodotENetPacket::NetworkCommandRaw {
+pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
+    Ok(Packet::NetworkCommandRaw {
         content: (&packet[1..]).into(),
     })
 }

@@ -7,7 +7,7 @@ const NODE_ID_COMPRESSION_FLAG: u8 =
     (1 << NODE_ID_COMPRESSION_SHIFT) | (1 << (NODE_ID_COMPRESSION_SHIFT + 1));
 const NAME_ID_COMPRESSION_FLAG: u8 = 1 << NAME_ID_COMPRESSION_SHIFT;
 
-use super::GodotENetPacket;
+use super::Packet;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RPCCommandHeader {
@@ -18,7 +18,7 @@ pub struct RPCCommandHeader {
 }
 
 // Heavily Uses SceneRPCInterface::process_rpc() and SceneMultiplayer in Godot to revese engineer the header
-pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
+pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     if packet.len() < 1 {
         return Err("Packet too short to contain Godot ENet header".to_string());
     }
@@ -50,7 +50,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
 
     // TODO: Get Content of the Packet
 
-    Ok(GodotENetPacket::NetworkCommandRemoteCall(
+    Ok(Packet::NetworkCommandRemoteCall(
         RPCCommandHeader {
             node_id_compression,
             node_id,

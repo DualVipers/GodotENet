@@ -1,19 +1,20 @@
+use crate::packet::outgoing::OutgoingPacket;
 use rusty_enet as enet;
 use std::sync::mpsc;
 
 #[derive(Clone, Debug)]
-pub struct GodotENetEvent {
+pub struct Event {
     pub peer_id: enet::PeerID,
 
-    pub event: GodotENetEventType,
+    pub event: EventType,
 
     pub data_pile: super::DataPile,
 
-    pub tx_outgoing: mpsc::Sender<super::OutgoingPacket>,
+    pub tx_outgoing: mpsc::Sender<OutgoingPacket>,
 }
 
 #[derive(Clone, Debug)]
-pub enum GodotENetEventType {
+pub enum EventType {
     Connect {
         godot_peer: super::GDPeerID,
     },

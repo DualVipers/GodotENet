@@ -1,25 +1,16 @@
-//TODO: REMOVE FOLLOWING IMPORT
-pub mod testing;
+mod async_layer;
 
-pub mod auto_parse;
+pub use async_layer::*;
 
-pub use auto_parse::*;
-
-// TODO: Async and Sync Layer Variants?
-// TODO: Builders for functions like Axum?
-
-use crate::event::GodotENetEvent;
+use crate::event::Event;
 use std::{future::Future, pin::Pin};
 
-pub type GodotENetLayerReturn = Pin<Box<dyn Future<Output = GodotENetLayerResult> + Send + Sync>>;
+pub type LayerReturn = Pin<Box<dyn Future<Output = LayerResult> + Send + Sync>>;
 
-pub type GodotENetLayerResult = Result<Option<GodotENetEvent>, String>;
+pub type LayerResult = Result<Option<Event>, String>;
 
 /// Layer trait for processing Godot ENet events
-pub trait GodotENetLayer {
+pub trait Layer {
     /// Process a Godot ENet event
-    fn call(
-        &self,
-        event: GodotENetEvent,
-    ) -> Pin<Box<dyn Future<Output = GodotENetLayerResult> + Send + Sync>>;
+    fn call(&self, event: Event) -> LayerReturn;
 }

@@ -1,7 +1,7 @@
-use super::GodotENetPacket;
+use super::Packet;
 
 // Based on Godot's SceneMultiplayer::_process_packet and SceneCacheInterface::process_confirm_path
-pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
+pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     if packet.len() != 6 {
         return Err("Packet not sized to contain Godot ENet packet".to_string());
     }
@@ -10,7 +10,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
 
     let remote_cache_id = u32::from_le_bytes([packet[2], packet[3], packet[4], packet[5]]);
 
-    Ok(GodotENetPacket::NetworkCommandConfirmPath {
+    Ok(Packet::NetworkCommandConfirmPath {
         valid_rpc_checksum: valid_rpc_checksum != 0,
         remote_cache_id,
     })

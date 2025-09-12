@@ -1,36 +1,31 @@
 pub mod builder;
 
-use crate::event::{GodotENetEvent, GodotENetEventType};
-use crate::{DataPile, GodotENetLayer};
+use crate::{
+    DataPile, Layer,
+    event::{Event, EventType},
+    packet::outgoing::OutgoingPacket,
+};
 use log::{debug, error, info, warn};
 use rusty_enet as enet;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::{Arc, mpsc};
 use std::usize;
 
-#[derive(Clone, Debug)]
-// TODO: Move somewhere nice
-pub struct OutgoingPacket {
-    pub peer_id: enet::PeerID,
-    pub channel_id: u8,
-    pub packet: enet::Packet,
-}
-
-pub struct GodotENetServer {
+pub struct Server {
     host: Option<enet::Host<UdpSocket>>,
 
     address: SocketAddr,
 
-    layers: Arc<Vec<Arc<dyn GodotENetLayer + Send + Sync>>>, // TODO: Switch from Vec to Queue/PrioQueue?
+    layers: Arc<Vec<Arc<dyn Layer + Send + Sync>>>, // TODO: Switch from Vec to Queue/PrioQueue?
 
     tx_outgoing: mpsc::Sender<OutgoingPacket>,
     rx_outgoing: mpsc::Receiver<OutgoingPacket>,
 }
 
-impl GodotENetServer {
+impl Server {
     /// Create a new GodotENetServer builder
-    pub fn builder() -> builder::GodotENetServerBuilder {
-        builder::GodotENetServerBuilder::default()
+    pub fn builder() -> builder::ServerBuilder {
+        builder::ServerBuilder::default()
     }
 
     pub fn open(&mut self) -> Result<(), String> {
@@ -112,7 +107,7 @@ impl GodotENetServer {
                     info!("Peer {:?} connected with {:?}", peer.id().0, data);
 
                     enet_peer_id = peer.id();
-                    godot_enet_event_data = GodotENetEventType::Connect {
+                    godot_enet_event_data = EventType::Connect {
                         godot_peer: super::GDPeerID::from(data),
                     };
                 }
@@ -120,7 +115,7 @@ impl GodotENetServer {
                     info!("Peer {:?} disconnected with {:?}", peer.id().0, data);
 
                     enet_peer_id = peer.id();
-                    godot_enet_event_data = GodotENetEventType::Disconnect {
+                    godot_enet_event_data = EventType::Disconnect {
                         godot_peer: super::GDPeerID::from(data),
                     };
                 }
@@ -130,14 +125,14 @@ impl GodotENetServer {
                     packet,
                 } => {
                     enet_peer_id = peer.id();
-                    godot_enet_event_data = GodotENetEventType::Receive {
+                    godot_enet_event_data = EventType::Receive {
                         channel_id,
                         raw_packet: packet,
                     };
                 }
             }
 
-            let godot_enet_event = GodotENetEvent {
+            let godot_enet_event = Event {
                 peer_id: enet_peer_id,
 
                 event: godot_enet_event_data,
@@ -158,7 +153,7 @@ impl GodotENetServer {
     }
 
     /// Process and event through layers by spawning an async task
-    async fn process_event(&mut self, mut event: GodotENetEvent) {
+    async fn process_event(&mut self, mut event: Event) {
         let layers = Arc::clone(&self.layers);
         let mut i: usize = 0;
 

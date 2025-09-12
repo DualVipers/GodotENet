@@ -1,34 +1,34 @@
-use crate::{GodotENetLayer, GodotENetServer};
+use crate::{Layer, Server};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, mpsc},
 };
 
-pub struct GodotENetServerBuilder {
+pub struct ServerBuilder {
     address: SocketAddr,
 
-    layers: Vec<Arc<dyn GodotENetLayer + Send + Sync + 'static>>,
+    layers: Vec<Arc<dyn Layer + Send + Sync + 'static>>,
 }
 
-impl GodotENetServerBuilder {
-    pub fn new() -> GodotENetServerBuilder {
-        GodotENetServerBuilder {
+impl ServerBuilder {
+    pub fn new() -> ServerBuilder {
+        ServerBuilder {
             address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 55556),
 
             layers: Vec::new(),
         }
     }
 
-    pub fn build(self) -> Result<GodotENetServer, String> {
+    pub fn build(self) -> Result<Server, String> {
         let (tx_outgoing, rx_outgoing) = mpsc::channel();
 
-        let mut layers: Vec<Arc<dyn GodotENetLayer + Send + Sync>> = Vec::new();
+        let mut layers: Vec<Arc<dyn Layer + Send + Sync>> = Vec::new();
 
         for layer in self.layers.iter() {
             layers.push(layer.clone());
         }
 
-        let server = GodotENetServer {
+        let server = Server {
             host: None,
 
             address: self.address,
@@ -44,16 +44,16 @@ impl GodotENetServerBuilder {
 }
 
 // Address Implementations
-impl GodotENetServerBuilder {
+impl ServerBuilder {
     /// Set the socket address for the server to bind to
     /// Overrides address and port if previously set
-    pub fn socket(mut self, address: SocketAddr) -> GodotENetServerBuilder {
+    pub fn socket(mut self, address: SocketAddr) -> ServerBuilder {
         self.address = address;
         self
     }
 
     /// Set the address and port for the server to bind to
-    pub fn address(mut self, address: &str, port: &str) -> Result<GodotENetServerBuilder, String> {
+    pub fn address(mut self, address: &str, port: &str) -> Result<ServerBuilder, String> {
         self.address = format!("{}:{}", address, port)
             .parse::<SocketAddr>()
             .map_err(|e| format!("Failed to parse socket address: {}", e))?;
@@ -63,13 +63,10 @@ impl GodotENetServerBuilder {
 }
 
 // Layer Implementations
-impl GodotENetServerBuilder {
+impl ServerBuilder {
     /// Add a layer to the server
     /// Layers are processed in the order they are added
-    pub fn layer<T: GodotENetLayer + Sync + Send + 'static>(
-        mut self,
-        layer: T,
-    ) -> GodotENetServerBuilder {
+    pub fn layer<T: Layer + Sync + Send + 'static>(mut self, layer: T) -> ServerBuilder {
         self.layers.push(Arc::new(layer));
 
         self
@@ -78,7 +75,7 @@ impl GodotENetServerBuilder {
     // TODO: Add Multiple Layers At Once
 }
 
-impl Default for GodotENetServerBuilder {
+impl Default for ServerBuilder {
     fn default() -> Self {
         Self::new()
     }
