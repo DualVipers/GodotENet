@@ -1,7 +1,12 @@
 //TODO: REMOVE FOLLOWING IMPORT
 pub mod testing;
 
+pub mod auto_parse;
+
+pub use auto_parse::*;
+
 // TODO: Async and Sync Layer Variants?
+// TODO: Builders for functions like Axum?
 
 use crate::event::GodotENetEvent;
 use std::{future::Future, pin::Pin};

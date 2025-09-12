@@ -1,13 +1,12 @@
+pub mod builder;
+
+use crate::event::{GodotENetEvent, GodotENetEventType};
+use crate::{DataPile, GodotENetLayer};
 use log::{debug, error, info, warn};
 use rusty_enet as enet;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::{Arc, mpsc};
 use std::usize;
-
-use crate::GodotENetLayer;
-use crate::event::{GodotENetEvent, GodotENetEventType};
-
-pub mod builder;
 
 #[derive(Clone, Debug)]
 // TODO: Move somewhere nice
@@ -142,6 +141,8 @@ impl GodotENetServer {
                 peer_id: enet_peer_id,
 
                 event: godot_enet_event_data,
+
+                data_pile: DataPile::default(),
 
                 tx_outgoing: self.tx_outgoing.clone(),
             };

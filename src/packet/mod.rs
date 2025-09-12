@@ -9,7 +9,7 @@ const CMD_MASK: u8 = 0x7;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 // Yoinked from Godot's SceneMultiplayer::_process_packet
-pub enum GodotENetPacket<'a> {
+pub enum GodotENetPacket {
     NetworkCommandRemoteCall(rpc::RPCCommandHeader),
     NetworkCommandSimplifyPath {
         methods_md5_hash: String, // 32 bytes
@@ -21,12 +21,12 @@ pub enum GodotENetPacket<'a> {
         remote_cache_id: u32,
     },
     NetworkCommandRaw {
-        content: &'a [u8],
+        content: Box<[u8]>,
     },
     NetworkCommandSpawn,
     NetworkCommandDespawn,
     NetworkCommandSync,
-    NetworkCommandSys(sys::SysCommandPacket<'a>),
+    NetworkCommandSys(sys::SysCommandPacket),
 }
 
 // Based on Godot's SceneMultiplayer::_process_packet

@@ -10,7 +10,9 @@ async fn main() {
 
     let mut builder = gd_enet::GodotENetServer::builder();
 
-    builder = builder.layer(gd_enet::layer::testing::TestingLayer);
+    builder = builder
+        .layer(gd_enet::AutoParseLayer)
+        .layer(gd_enet::testing::TestingLayer);
 
     let mut server = builder.build().unwrap();
 

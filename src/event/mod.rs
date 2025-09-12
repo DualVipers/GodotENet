@@ -1,12 +1,13 @@
-use std::sync::mpsc;
-
 use rusty_enet as enet;
+use std::sync::mpsc;
 
 #[derive(Clone, Debug)]
 pub struct GodotENetEvent {
     pub peer_id: enet::PeerID,
 
     pub event: GodotENetEventType,
+
+    pub data_pile: super::DataPile,
 
     pub tx_outgoing: mpsc::Sender<super::OutgoingPacket>,
 }

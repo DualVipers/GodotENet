@@ -1,24 +1,24 @@
-const SYS_CMD_SIZE: usize = 6;
-
 use super::GodotENetPacket;
 use crate::GDPeerID;
 
+const SYS_CMD_SIZE: usize = 6;
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SysCommandPacket<'a> {
+pub struct SysCommandPacket {
     pub gdpeer: GDPeerID,
-    pub sys_cmd: SysCommand<'a>,
+    pub sys_cmd: SysCommand,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 // Yoinked from Godot's SceneMultiplayer::_process_packet
-pub enum SysCommand<'a> {
+pub enum SysCommand {
     SysCommandAuth,
     /// Parsing and Generating Complete
     SysCommandAddPeer,
     /// Parsing and Generating Complete
     SysCommandDelPeer,
     SysCommandRelay {
-        content: &'a [u8],
+        content: Box<[u8]>,
     },
 }
 
@@ -51,7 +51,7 @@ fn parse_relay_command(packet: &[u8]) -> Result<SysCommand, String> {
     }
 
     Ok(SysCommand::SysCommandRelay {
-        content: &packet[SYS_CMD_SIZE..],
+        content: (packet[SYS_CMD_SIZE..]).into(),
     })
 }
 
@@ -78,7 +78,7 @@ pub fn gen_packet(packet: &SysCommandPacket) -> Result<Vec<u8>, String> {
 
     out_packet.extend(&packet.gdpeer.0.to_le_bytes());
 
-    match packet.sys_cmd {
+    match &packet.sys_cmd {
         SysCommand::SysCommandRelay { content } => {
             out_packet.extend(content);
         }

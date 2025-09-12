@@ -3,7 +3,7 @@ use super::GodotENetPacket;
 // Heavily Uses SceneMultiplayer::_process_sys() in Godot to revese engineer the header
 pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
     Ok(GodotENetPacket::NetworkCommandRaw {
-        content: &packet[1..],
+        content: (&packet[1..]).into(),
     })
 }
 
