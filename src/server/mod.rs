@@ -1,13 +1,31 @@
-use log::{debug, warn};
+use log::{debug, error, info, warn};
 use rusty_enet as enet;
 use std::net::{SocketAddr, UdpSocket};
+use std::sync::{Arc, mpsc};
+use std::usize;
+
+use crate::GodotENetLayer;
+use crate::event::{GodotENetEvent, GodotENetEventType};
 
 pub mod builder;
+
+#[derive(Clone, Debug)]
+// TODO: Move somewhere nice
+pub struct OutgoingPacket {
+    pub peer_id: enet::PeerID,
+    pub channel_id: u8,
+    pub packet: enet::Packet,
+}
 
 pub struct GodotENetServer {
     host: Option<enet::Host<UdpSocket>>,
 
     address: SocketAddr,
+
+    layers: Arc<Vec<Arc<dyn GodotENetLayer + Send + Sync>>>, // TODO: Switch from Vec to Queue/PrioQueue?
+
+    tx_outgoing: mpsc::Sender<OutgoingPacket>,
+    rx_outgoing: mpsc::Receiver<OutgoingPacket>,
 }
 
 impl GodotENetServer {
@@ -76,16 +94,143 @@ impl GodotENetServer {
         self.host.is_some()
     }
 
-    /// Obtain a reference to the ENet host
-    pub fn get_host(&mut self) -> Result<&enet::Host<UdpSocket>, String> {
+    /// Checks for events on the host and shuttles packets between the host and its peers.
+    ///
+    /// Returns whether an event was processed.
+    ///
+    /// Should be called fairly regularly for adequate performance.
+    pub async fn service(&mut self) -> Result<bool, String> {
         let host = self.get_mut_host()?;
 
-        Ok(host)
+        // TODO: Try to finagle to while loop, borrowing issues currently blocking
+        if let Some(event) = host.service().unwrap() {
+            let enet_peer_id;
+            let godot_enet_event_data;
+
+            // Build PeerID and GodotENetEventType
+            match event {
+                enet::Event::Connect { peer, data } => {
+                    info!("Peer {:?} connected with {:?}", peer.id().0, data);
+
+                    enet_peer_id = peer.id();
+                    godot_enet_event_data = GodotENetEventType::Connect {
+                        godot_peer: super::GDPeerID::from(data),
+                    };
+                }
+                enet::Event::Disconnect { peer, data } => {
+                    info!("Peer {:?} disconnected with {:?}", peer.id().0, data);
+
+                    enet_peer_id = peer.id();
+                    godot_enet_event_data = GodotENetEventType::Disconnect {
+                        godot_peer: super::GDPeerID::from(data),
+                    };
+                }
+                enet::Event::Receive {
+                    peer,
+                    channel_id,
+                    packet,
+                } => {
+                    enet_peer_id = peer.id();
+                    godot_enet_event_data = GodotENetEventType::Receive {
+                        channel_id,
+                        raw_packet: packet,
+                    };
+                }
+            }
+
+            let godot_enet_event = GodotENetEvent {
+                peer_id: enet_peer_id,
+
+                event: godot_enet_event_data,
+
+                tx_outgoing: self.tx_outgoing.clone(),
+            };
+
+            self.process_event(godot_enet_event).await;
+        }
+
+        while let Ok(outgoing) = self.rx_outgoing.try_recv() {
+            self.send_outgoing(outgoing).await?;
+        }
+
+        return Ok(true);
+    }
+
+    /// Process and event through layers by spawning an async task
+    async fn process_event(&mut self, mut event: GodotENetEvent) {
+        let layers = Arc::clone(&self.layers);
+        let mut i: usize = 0;
+
+        tokio::spawn(async move {
+            while i < layers.len() {
+                let layer = &layers[i];
+                i += 1;
+
+                let result = layer.call(event.clone()).await; // TODO: Avoid clone?
+
+                match result {
+                    Ok(passed_event) => {
+                        if passed_event.is_none() {
+                            return;
+                        }
+
+                        event = passed_event.unwrap();
+                    }
+                    Err(e) => {
+                        error!("Error processing event in layer: {}", e);
+                    }
+                }
+            }
+        });
+    }
+
+    async fn send_outgoing(&mut self, outgoing: OutgoingPacket) -> Result<(), String> {
+        let host = self.get_mut_host()?;
+
+        let peer = host.get_peer_mut(outgoing.peer_id).ok_or_else(|| {
+            format!(
+                "Failed to find peer with id {:?} to send packet to",
+                outgoing.peer_id
+            )
+        })?;
+
+        if peer.state() != enet::PeerState::Connected {
+            return Err(format!(
+                "Peer with id {:?} is not connected",
+                outgoing.peer_id
+            ));
+        }
+
+        debug!(
+            "Sending packet: {:?}\nto peer: {:?}\non: {:?}",
+            outgoing.packet.data(),
+            outgoing.peer_id,
+            outgoing.channel_id
+        );
+
+        peer.send(outgoing.channel_id, &outgoing.packet)
+            .map_err(|e| {
+                format!(
+                    "Failed to send packet to peer {:?}: {:?}",
+                    outgoing.peer_id, e
+                )
+            })?;
+
+        Ok(())
+    }
+
+    /// Obtain a reference to the ENet host
+    pub fn get_host(&self) -> Result<&enet::Host<UdpSocket>, String> {
+        if self.is_open() == false {
+            return Err("Server is not open".to_string());
+        }
+
+        Ok(self.host.as_ref().unwrap())
     }
 
     /// Obtain a mutable reference to the ENet host
     pub fn get_mut_host(&mut self) -> Result<&mut enet::Host<UdpSocket>, String> {
-        if self.host.is_none() {
+        if self.is_open() == false {
             return Err("Server is not open".to_string());
         }
 

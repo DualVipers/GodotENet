@@ -1,3 +1,5 @@
+// No processing middlewares, just a barebones server example with packet parsing
+
 use log::{debug, info};
 use rusty_enet as enet;
 use std::time::Duration;
@@ -20,10 +22,10 @@ async fn main() {
         while let Some(event) = host.service().unwrap() {
             match event {
                 enet::Event::Connect { peer, data } => {
-                    info!("Peer {} connected with {}", peer.id().0, data);
+                    info!("Peer {:?} connected with {:?}", peer.id().0, data);
                 }
                 enet::Event::Disconnect { peer, data } => {
-                    info!("Peer {} disconnected with {}", peer.id().0, data);
+                    info!("Peer {:?} disconnected with {:?}", peer.id().0, data);
                 }
                 enet::Event::Receive {
                     peer,
@@ -38,31 +40,12 @@ async fn main() {
                             peer.id().0,
                             channel_id
                         );
-                        debug!("Parsed Header: {:?}", parsed_packet);
-                    }
-
-                    if let gd_enet::packet::GodotENetPacket::NetworkCommandSys(sys_packet) =
-                        parsed_packet
-                    {
-                        if let gd_enet::packet::sys::SysCommand::SysCommandRelay { content } =
-                            sys_packet.sys_cmd
-                        {
-                            debug!(
-                                "Sending packet: {:?}\nTo: {:?}\nOn: {:?}\n",
-                                content,
-                                peer.id().0,
-                                channel_id
-                            );
-                            debug!(
-                                "Parsed Header: {:?}",
-                                gd_enet::packet::parse_packet(&content)
-                            );
-                            _ = peer.send(channel_id, &enet::Packet::reliable(content));
-                        }
+                        debug!("Parsed: {:?}", parsed_packet);
                     }
                 }
             }
         }
+
         std::thread::sleep(Duration::from_millis(10));
     }
 }

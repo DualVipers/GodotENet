@@ -1,13 +1,11 @@
 const SYS_CMD_SIZE: usize = 6;
 
 use super::GodotENetPacket;
+use crate::GDPeerID;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SysCommandPacket<'a> {
-    /// The peer code within Godot
-    ///
-    /// -1 for all but server, <=0 for all & server, >=1 for single client or server
-    pub gdpeer: i32,
+    pub gdpeer: GDPeerID,
     pub sys_cmd: SysCommand<'a>,
 }
 
@@ -41,7 +39,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<GodotENetPacket, String> {
     };
 
     Ok(GodotENetPacket::NetworkCommandSys(SysCommandPacket {
-        gdpeer,
+        gdpeer: GDPeerID(gdpeer),
         sys_cmd,
     }))
 }
@@ -78,7 +76,7 @@ pub fn gen_packet(packet: &SysCommandPacket) -> Result<Vec<u8>, String> {
         }
     }
 
-    out_packet.extend(&packet.gdpeer.to_le_bytes());
+    out_packet.extend(&packet.gdpeer.0.to_le_bytes());
 
     match packet.sys_cmd {
         SysCommand::SysCommandRelay { content } => {
