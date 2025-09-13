@@ -14,6 +14,7 @@ async fn main() {
 
     builder = builder
         .layer(gd_enet::layers::AutoParseLayer)
+        .layer(gd_enet::layers::PeerMapLayer::default())
         .layer(AsyncLayer::build(testing));
 
     let mut server = builder.build().unwrap();

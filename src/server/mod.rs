@@ -16,7 +16,7 @@ pub struct Server {
 
     address: SocketAddr,
 
-    layers: Arc<Vec<Arc<dyn Layer + Send + Sync>>>, // TODO: Switch from Vec to Queue/PrioQueue?
+    layers: Arc<Vec<Arc<dyn Layer + Send + Sync>>>,
 
     tx_outgoing: mpsc::Sender<OutgoingPacket>,
     rx_outgoing: mpsc::Receiver<OutgoingPacket>,

@@ -84,6 +84,7 @@ impl DataPile {
             .map
             .entry(TypeId::of::<T>())
             .or_insert_with(|| Box::new(f()));
+
         (**out).as_any_mut().downcast_mut().unwrap()
     }
 

@@ -65,6 +65,7 @@ impl ServerBuilder {
 // Layer Implementations
 impl ServerBuilder {
     /// Add a layer to the server
+    ///
     /// Layers are processed in the order they are added
     pub fn layer<T: Layer + Sync + Send + 'static>(mut self, layer: T) -> ServerBuilder {
         self.layers.push(Arc::new(layer));
@@ -72,7 +73,41 @@ impl ServerBuilder {
         self
     }
 
-    // TODO: Add Multiple Layers At Once
+    /// Add an arc layer to the server
+    ///
+    /// Layers are processed in the order they are added
+    pub fn arc_layer<T: Layer + Sync + Send + 'static>(mut self, layer: Arc<T>) -> ServerBuilder {
+        self.layers.push(layer);
+
+        self
+    }
+
+    /// Add multiple layers to the server
+    ///
+    /// Layers are processed in the order they are added
+    pub fn layers<T: Layer + Sync + Send + 'static>(mut self, layers: Vec<T>) -> ServerBuilder {
+        for layer in layers.into_iter() {
+            self.layers.push(Arc::new(layer));
+        }
+
+        self
+    }
+
+    /// Add multiple arc layers to the server
+    ///
+    /// Layers are processed in the order they are added
+    pub fn arc_layers<T: Layer + Sync + Send + 'static>(
+        mut self,
+        layers: Vec<Arc<T>>,
+    ) -> ServerBuilder {
+        for layer in layers.iter() {
+            self.layers.push(layer.clone());
+        }
+
+        self
+    }
+
+    // TODO: Add Multiple Layers At Once, Probably With Some "LayerSet"
 }
 
 impl Default for ServerBuilder {

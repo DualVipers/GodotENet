@@ -12,7 +12,10 @@ pub use server::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// The peer id within Godot
 ///
-/// -1 for all but server, <=0 for all & server, >=1 for single client or server
+/// -1 for all but server,
+/// <=0 for all & server,
+/// 1 for server,
+/// >=2 for single client
 pub struct GDPeerID(pub i32);
 
 impl From<u32> for GDPeerID {

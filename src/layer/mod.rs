@@ -1,6 +1,8 @@
 mod async_layer;
+mod sync_layer;
 
 pub use async_layer::*;
+pub use sync_layer::*;
 
 use crate::event::Event;
 use std::{future::Future, pin::Pin};
