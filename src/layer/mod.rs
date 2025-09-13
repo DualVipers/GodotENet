@@ -1,7 +1,11 @@
 mod async_layer;
+mod data_async_layer;
+mod data_sync_layer;
 mod sync_layer;
 
 pub use async_layer::*;
+pub use data_async_layer::*;
+pub use data_sync_layer::*;
 pub use sync_layer::*;
 
 use crate::event::Event;
