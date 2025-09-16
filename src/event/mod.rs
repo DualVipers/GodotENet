@@ -1,10 +1,10 @@
-use crate::packet::outgoing::OutgoingPacket;
+use crate::{ENetPeerID, packet::outgoing::OutgoingPacket};
 use rusty_enet as enet;
 use std::sync::mpsc;
 
 #[derive(Clone, Debug)]
 pub struct Event {
-    pub peer_id: enet::PeerID,
+    pub peer_id: ENetPeerID,
 
     pub event: EventType,
 

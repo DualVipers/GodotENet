@@ -1,4 +1,4 @@
-use super::Packet;
+use crate::packet::{Packet, RemoteCacheID};
 
 // Based on Godot's SceneMultiplayer::_process_packet
 pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
@@ -25,7 +25,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 // Reverse of parse_packet
 pub fn gen_packet(
     methods_md5_hash: &str,
-    remote_cache_id: u32,
+    remote_cache_id: RemoteCacheID,
     path: &str,
 ) -> Result<Vec<u8>, String> {
     if methods_md5_hash.len() != 32 {

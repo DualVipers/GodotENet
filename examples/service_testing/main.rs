@@ -1,5 +1,5 @@
 use godot_enet::{
-    self as gd_enet, AsyncLayer, LayerResult,
+    self as gd_enet, AsyncLayer, ENetPeerID, LayerResult,
     packet::{Packet, outgoing},
 };
 use std::time::Duration;
@@ -15,6 +15,7 @@ async fn main() {
     builder = builder
         .layer(gd_enet::layers::AutoParseLayer)
         .layer(gd_enet::layers::PeerMapLayer::default())
+        .layer(gd_enet::layers::PathCacheLayer::default())
         .layer(AsyncLayer::build(testing));
 
     let mut server = builder.build().unwrap();
@@ -35,7 +36,7 @@ async fn testing(event: gd_enet::event::Event) -> LayerResult {
 
             if let gd_enet::packet::sys::SysCommand::SysCommandRelay { content } = &packet.sys_cmd {
                 let outgoing_packet = outgoing::OutgoingPacket {
-                    peer_id: outgoing::PeerID(0),
+                    peer_id: ENetPeerID(0),
                     channel_id: 0,
                     packet: outgoing::Packet::reliable((*content).clone()),
                 };

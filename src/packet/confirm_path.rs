@@ -1,4 +1,4 @@
-use super::Packet;
+use crate::packet::{Packet, RemoteCacheID};
 
 // Based on Godot's SceneMultiplayer::_process_packet and SceneCacheInterface::process_confirm_path
 pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
@@ -17,7 +17,10 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 }
 
 // Reverse of parse_packet
-pub fn gen_packet(valid_rpc_checksum: bool, remote_cache_id: u32) -> Result<Vec<u8>, String> {
+pub fn gen_packet(
+    valid_rpc_checksum: bool,
+    remote_cache_id: RemoteCacheID,
+) -> Result<Vec<u8>, String> {
     let mut out_packet: Vec<u8> = Vec::new();
 
     out_packet.push(2); // CMD_MASK for Confirm Path

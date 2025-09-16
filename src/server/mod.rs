@@ -1,7 +1,7 @@
 pub mod builder;
 
 use crate::{
-    DataPile, Layer,
+    DataPile, ENetPeerID, Layer,
     event::{Event, EventType},
     packet::outgoing::OutgoingPacket,
 };
@@ -98,7 +98,7 @@ impl Server {
 
         // TODO: Try to finagle to while loop, borrowing issues currently blocking
         if let Some(event) = host.service().unwrap() {
-            let enet_peer_id;
+            let enet_peer_id: ENetPeerID;
             let godot_enet_event_data;
 
             // Build PeerID and GodotENetEventType
@@ -106,7 +106,7 @@ impl Server {
                 enet::Event::Connect { peer, data } => {
                     info!("Peer {:?} connected with {:?}", peer.id().0, data);
 
-                    enet_peer_id = peer.id();
+                    enet_peer_id = peer.id().into();
                     godot_enet_event_data = EventType::Connect {
                         godot_peer: super::GDPeerID::from(data),
                     };
@@ -114,7 +114,7 @@ impl Server {
                 enet::Event::Disconnect { peer, data } => {
                     info!("Peer {:?} disconnected with {:?}", peer.id().0, data);
 
-                    enet_peer_id = peer.id();
+                    enet_peer_id = peer.id().into();
                     godot_enet_event_data = EventType::Disconnect {
                         godot_peer: super::GDPeerID::from(data),
                     };
@@ -124,7 +124,7 @@ impl Server {
                     channel_id,
                     packet,
                 } => {
-                    enet_peer_id = peer.id();
+                    enet_peer_id = peer.id().into();
                     godot_enet_event_data = EventType::Receive {
                         channel_id,
                         raw_packet: packet,
@@ -173,7 +173,7 @@ impl Server {
                         event = passed_event.unwrap();
                     }
                     Err(e) => {
-                        error!("Error processing event in layer: {}", e);
+                        error!("Error processing event in layer: \n{}", e);
                     }
                 }
             }
@@ -183,7 +183,7 @@ impl Server {
     async fn send_outgoing(&mut self, outgoing: OutgoingPacket) -> Result<(), String> {
         let host = self.get_mut_host()?;
 
-        let peer = host.get_peer_mut(outgoing.peer_id).ok_or_else(|| {
+        let peer = host.get_peer_mut(outgoing.peer_id.into()).ok_or_else(|| {
             format!(
                 "Failed to find peer with id {:?} to send packet to",
                 outgoing.peer_id

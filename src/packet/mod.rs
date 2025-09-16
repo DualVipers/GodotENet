@@ -8,18 +8,20 @@ pub mod sys;
 // From scene_multiplayer.h
 const CMD_MASK: u8 = 0x7;
 
+pub type RemoteCacheID = u32;
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 // Yoinked from Godot's SceneMultiplayer::_process_packet
 pub enum Packet {
     NetworkCommandRemoteCall(rpc::RPCCommandHeader),
     NetworkCommandSimplifyPath {
         methods_md5_hash: String, // 32 bytes
-        remote_cache_id: u32,
+        remote_cache_id: RemoteCacheID,
         path: String, // Variable Length
     },
     NetworkCommandConfirmPath {
         valid_rpc_checksum: bool,
-        remote_cache_id: u32,
+        remote_cache_id: RemoteCacheID,
     },
     NetworkCommandRaw {
         content: Box<[u8]>,

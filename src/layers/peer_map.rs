@@ -1,34 +1,33 @@
 use std::sync::Arc;
 
 use crate::{
-    GDPeerID, Layer, LayerResult,
+    ENetPeerID, GDPeerID, Layer, LayerResult,
     event::{Event, EventType},
 };
 use dashmap::DashMap;
 use log::debug;
-use rusty_enet::PeerID;
 
 #[derive(Default, Clone)]
 pub struct PeerMap {
-    enet_peers: Arc<DashMap<PeerID, GDPeerID>>,
-    gd_peers: Arc<DashMap<GDPeerID, PeerID>>,
+    enet_peers: Arc<DashMap<ENetPeerID, GDPeerID>>,
+    gd_peers: Arc<DashMap<GDPeerID, ENetPeerID>>,
 }
 
 impl PeerMap {
-    pub fn get_enet_peer(&self, gd_peer: &GDPeerID) -> Option<PeerID> {
+    pub fn get_enet_peer(&self, gd_peer: &GDPeerID) -> Option<ENetPeerID> {
         return self.gd_peers.get(gd_peer).map(|entry| *entry.value());
     }
 
-    pub fn get_gd_peer(&self, enet_peer: &PeerID) -> Option<GDPeerID> {
+    pub fn get_gd_peer(&self, enet_peer: &ENetPeerID) -> Option<GDPeerID> {
         return self.enet_peers.get(enet_peer).map(|entry| *entry.value());
     }
 
-    pub fn insert(&self, enet_peer: PeerID, gd_peer: GDPeerID) {
+    pub fn insert(&self, enet_peer: ENetPeerID, gd_peer: GDPeerID) {
         self.enet_peers.insert(enet_peer, gd_peer);
         self.gd_peers.insert(gd_peer, enet_peer);
     }
 
-    pub fn remove_enet_peer(&self, enet_peer: &PeerID) {
+    pub fn remove_enet_peer(&self, enet_peer: &ENetPeerID) {
         if let Some((_, gd_peer)) = self.enet_peers.remove(enet_peer) {
             self.gd_peers.remove(&gd_peer);
         }
@@ -42,6 +41,7 @@ impl PeerMap {
 }
 
 #[derive(Default, Clone)]
+/// A layer which maintains a mapping between ENet PeerIDs and Godot PeerIDs, adding the mapping to the DataPile.
 pub struct PeerMapLayer {
     peer_map: PeerMap,
 }
@@ -72,6 +72,18 @@ impl Layer for PeerMapLayer {
                     peer_map.remove_gd_peer(godot_peer);
                 }
                 _ => {}
+            }
+
+            event.data_pile.insert(event.peer_id);
+
+            let godot_peer_id = peer_map.get_gd_peer(&event.peer_id);
+            if let Some(godot_peer_id) = godot_peer_id {
+                event.data_pile.insert(godot_peer_id);
+            } else {
+                return Err(format!(
+                    "PeerMapLayer could not find Godot Peer ID for ENet Peer ID: {:?}",
+                    event.peer_id
+                ));
             }
 
             event.data_pile.insert(peer_map);

@@ -12,15 +12,49 @@ pub use server::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// The peer id within Godot
 ///
-/// -1 for all but server,
-/// <=0 for all & server,
+/// -x for all but x,
+/// 0 for all,
 /// 1 for server,
-/// >=2 for single client
+/// 2+ for single peer
 pub struct GDPeerID(pub i32);
 
 impl From<u32> for GDPeerID {
     fn from(value: u32) -> Self {
         // There is some weird s*** going on with SceneMultiplayer::_process_sys, but this seems to work
         GDPeerID(value as i32)
+    }
+}
+
+impl Into<i32> for GDPeerID {
+    fn into(self) -> i32 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// The peer id within ENet
+pub struct ENetPeerID(pub usize);
+
+impl From<rusty_enet::PeerID> for ENetPeerID {
+    fn from(value: rusty_enet::PeerID) -> Self {
+        ENetPeerID(value.0)
+    }
+}
+
+impl From<usize> for ENetPeerID {
+    fn from(value: usize) -> Self {
+        ENetPeerID(value)
+    }
+}
+
+impl Into<rusty_enet::PeerID> for ENetPeerID {
+    fn into(self) -> rusty_enet::PeerID {
+        rusty_enet::PeerID(self.0)
+    }
+}
+
+impl Into<usize> for ENetPeerID {
+    fn into(self) -> usize {
+        self.0
     }
 }
