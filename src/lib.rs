@@ -1,11 +1,14 @@
 mod data_pile;
+mod dyn_helpers;
 pub mod event;
 mod layer;
 pub mod layers;
 pub mod packet;
 mod server;
+pub mod variant;
 
 pub use data_pile::*;
+pub use dyn_helpers::*;
 pub use layer::*;
 pub use server::*;
 

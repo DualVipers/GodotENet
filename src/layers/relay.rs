@@ -1,1 +1,1 @@
-// TODO: Build Relay Layer, With Authentication Function
+// TODO: Build Relay Layer, With Optional Authentication Function

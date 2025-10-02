@@ -16,6 +16,7 @@ async fn main() {
         .layer(gd_enet::layers::AutoParseLayer)
         .layer(gd_enet::layers::PeerMapLayer::default())
         .layer(gd_enet::layers::PathCacheLayer::default())
+        .layer(gd_enet::layers::RPCParseLayer)
         .layer(AsyncLayer::build(testing));
 
     let mut server = builder.build().unwrap();
@@ -49,6 +50,12 @@ async fn testing(event: gd_enet::event::Event) -> LayerResult {
             }
 
             return Ok(None);
+        } else if let Some(rpc_command) = event.data_pile.get::<gd_enet::packet::rpc::RPCCommand>()
+        {
+            log::info!("Received RPC Command For Node: {:?}", rpc_command.path);
+            for (i, arg) in rpc_command.args.iter().enumerate() {
+                log::info!("Arg {}: {:?}", i, arg);
+            }
         }
     }
 
