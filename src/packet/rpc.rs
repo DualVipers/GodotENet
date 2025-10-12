@@ -56,7 +56,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     // Node *node = _process_get_node(p_from, p_packet, node_target, p_packet_len);
     // This is instead done in the RPCParseLayer, as it requires more data
 
-    let offset: usize = packet[1 + (1 << node_id_compression) as usize] as usize;
+    let offset: usize = 1 + (1 << node_id_compression) as usize;
     let name_id: u32 = match name_id_compression {
         0 => packet[offset] as u32,
         1 => u16::from_le_bytes([packet[offset], packet[1 + offset]]) as u32,

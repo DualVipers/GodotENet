@@ -1,8 +1,6 @@
 // TODO: Add Example Usage
 
-use std::pin::Pin;
-
-use crate::{Layer, LayerResult, event::Event};
+use crate::{Layer, LayerResult, LayerReturn, event::Event};
 
 pub struct SyncLayer {
     func: fn(Event) -> LayerResult,
@@ -18,11 +16,7 @@ impl SyncLayer {
 }
 
 impl Layer for SyncLayer {
-    fn call(
-        &self,
-        event: Event,
-    ) -> Pin<Box<(dyn Future<Output = Result<Option<Event>, String>> + Send + Sync + 'static)>>
-    {
+    fn call(&self, event: Event) -> LayerReturn {
         let func = self.func;
 
         return Box::pin(async move { (func)(event) });

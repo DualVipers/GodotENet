@@ -1,10 +1,11 @@
 // TODO: ADD RPC Parsing
 
 use crate::{
-    GDPeerID, Layer, LayerResult,
+    GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
     layers::PathCache,
     packet::{Packet, rpc::RPCCommand},
+    utils::clean_path,
     variant::{self, Variant},
 };
 use std::sync::Arc;
@@ -17,10 +18,7 @@ use std::sync::Arc;
 pub struct RPCParseLayer;
 
 impl Layer for RPCParseLayer {
-    fn call(
-        &self,
-        mut event: Event,
-    ) -> std::pin::Pin<Box<dyn Future<Output = LayerResult> + Send + Sync>> {
+    fn call(&self, mut event: Event) -> LayerReturn {
         return Box::pin(async move {
             let EventType::Receive { ref raw_packet, .. } = event.event else {
                 return Ok(Some(event));
@@ -55,8 +53,10 @@ impl Layer for RPCParseLayer {
                     );
                 }
 
-                path = String::from_utf8(raw_packet.data()[offset..].to_vec())
-                    .map_err(|e| format!("Invalid UTF-8 in Full Path of RPC Packet: {}", e))?;
+                path = clean_path(
+                    String::from_utf8(raw_packet.data()[offset..].to_vec())
+                        .map_err(|e| format!("Invalid UTF-8 in Full Path of RPC Packet: {}", e))?,
+                );
             } else {
                 let peer_id = match event.data_pile.get::<GDPeerID>() {
                     Some(peer_id) => peer_id,

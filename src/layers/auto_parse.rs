@@ -1,5 +1,5 @@
 use crate::{
-    Layer, LayerResult,
+    Layer, LayerReturn,
     event::{Event, EventType},
     packet::Packet,
 };
@@ -12,10 +12,7 @@ use log::debug;
 pub struct AutoParseLayer;
 
 impl Layer for AutoParseLayer {
-    fn call(
-        &self,
-        mut event: Event,
-    ) -> std::pin::Pin<Box<dyn Future<Output = LayerResult> + Send + Sync>> {
+    fn call(&self, mut event: Event) -> LayerReturn {
         return Box::pin(async move {
             let EventType::Receive { ref raw_packet, .. } = event.event else {
                 return Ok(Some(event));

@@ -7,7 +7,7 @@ use std::{
 pub struct ServerBuilder {
     address: SocketAddr,
 
-    layers: Vec<Arc<dyn Layer + Send + Sync + 'static>>,
+    layers: Vec<Arc<dyn Layer>>,
 }
 
 impl ServerBuilder {
@@ -22,7 +22,7 @@ impl ServerBuilder {
     pub fn build(self) -> Result<Server, String> {
         let (tx_outgoing, rx_outgoing) = mpsc::channel();
 
-        let mut layers: Vec<Arc<dyn Layer + Send + Sync>> = Vec::new();
+        let mut layers: Vec<Arc<dyn Layer>> = Vec::new();
 
         for layer in self.layers.iter() {
             layers.push(layer.clone());

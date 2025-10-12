@@ -16,7 +16,7 @@ pub type LayerReturn = Pin<Box<dyn Future<Output = LayerResult> + Send + Sync>>;
 pub type LayerResult = Result<Option<Event>, String>;
 
 /// Layer trait for processing Godot ENet events
-pub trait Layer {
+pub trait Layer: Send + Sync + 'static {
     /// Process a Godot ENet event
     fn call(&self, event: Event) -> LayerReturn;
 }

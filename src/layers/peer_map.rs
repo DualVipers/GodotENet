@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    ENetPeerID, GDPeerID, Layer, LayerResult,
+    ENetPeerID, GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
 };
 use dashmap::DashMap;
@@ -47,10 +47,7 @@ pub struct PeerMapLayer {
 }
 
 impl Layer for PeerMapLayer {
-    fn call(
-        &self,
-        mut event: Event,
-    ) -> std::pin::Pin<Box<dyn Future<Output = LayerResult> + Send + Sync>> {
+    fn call(&self, mut event: Event) -> LayerReturn {
         let peer_map = self.peer_map.clone();
 
         return Box::pin(async move {

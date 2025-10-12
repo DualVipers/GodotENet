@@ -1,8 +1,8 @@
 // TODO: Add Example Usage
 
-use std::{pin::Pin, sync::Arc};
+use std::sync::Arc;
 
-use crate::{Layer, LayerResult, event::Event};
+use crate::{Layer, LayerResult, LayerReturn, event::Event};
 
 pub struct DataAsyncLayer<F, T>
 where
@@ -57,11 +57,7 @@ where
     F: Future<Output = LayerResult> + Sync + Send,
     T: Sync + Send + 'static,
 {
-    fn call(
-        &self,
-        event: Event,
-    ) -> Pin<Box<(dyn Future<Output = Result<Option<Event>, String>> + Send + Sync + 'static)>>
-    {
+    fn call(&self, event: Event) -> LayerReturn {
         let func = self.func;
         let data = self.data.clone();
 

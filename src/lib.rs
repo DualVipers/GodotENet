@@ -4,8 +4,12 @@ pub mod event;
 mod layer;
 pub mod layers;
 pub mod packet;
+pub mod routers;
 mod server;
+pub mod utils;
 pub mod variant;
+
+use std::ops::Deref;
 
 pub use data_pile::*;
 pub use dyn_helpers::*;
@@ -34,6 +38,14 @@ impl Into<i32> for GDPeerID {
     }
 }
 
+impl Deref for GDPeerID {
+    type Target = i32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// The peer id within ENet
 pub struct ENetPeerID(pub usize);
@@ -59,5 +71,13 @@ impl Into<rusty_enet::PeerID> for ENetPeerID {
 impl Into<usize> for ENetPeerID {
     fn into(self) -> usize {
         self.0
+    }
+}
+
+impl Deref for ENetPeerID {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

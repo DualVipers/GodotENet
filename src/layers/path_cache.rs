@@ -1,5 +1,5 @@
 use crate::{
-    GDPeerID, Layer, LayerResult,
+    GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
     packet::{Packet, RemoteCacheID, confirm_path, outgoing},
 };
@@ -144,8 +144,8 @@ impl PathCache {
 pub struct PathCacheLayer {
     cache: PathCache,
 
-    consume_confirm_path: bool,
-    consume_simplify_path: bool,
+    pub consume_confirm_path: bool,
+    pub consume_simplify_path: bool,
 }
 
 impl Default for PathCacheLayer {
@@ -160,10 +160,7 @@ impl Default for PathCacheLayer {
 }
 
 impl Layer for PathCacheLayer {
-    fn call(
-        &self,
-        mut event: Event,
-    ) -> std::pin::Pin<Box<dyn Future<Output = LayerResult> + Send + Sync + 'static>> {
+    fn call(&self, mut event: Event) -> LayerReturn {
         let cache = self.cache.clone();
         let consume_confirm_path = self.consume_confirm_path;
         let consume_simplify_path = self.consume_simplify_path;

@@ -16,7 +16,7 @@ pub struct Server {
 
     address: SocketAddr,
 
-    layers: Arc<Vec<Arc<dyn Layer + Send + Sync>>>,
+    layers: Arc<Vec<Arc<dyn Layer>>>,
 
     tx_outgoing: mpsc::Sender<OutgoingPacket>,
     rx_outgoing: mpsc::Receiver<OutgoingPacket>,
