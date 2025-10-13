@@ -1,6 +1,6 @@
 use super::{DecodingResult, Variant, helpers};
 use dashmap::DashMap;
-use std::{hash::Hash, ops::Deref, sync::Arc};
+use std::{any::TypeId, hash::Hash, ops::Deref, sync::Arc};
 
 #[derive(Clone, Debug)]
 pub struct TypedDictionary<K, V>(Arc<DashMap<K, V>>)
@@ -15,11 +15,42 @@ where
 {
     // Replicated from encode_variant in marshalls.cpp
     fn encode(&self) -> Result<Vec<u8>, String> {
-        let header = 27u32;
+        let mut header = 27u32;
 
-        // Todo: Check and Encode Key and Value Types Maybe?
+        header |= 1 << super::HEADER_DATA_FIELD_TYPED_DICTIONARY_KEY_SHIFT;
+        header |= 1 << super::HEADER_DATA_FIELD_TYPED_DICTIONARY_VALUE_SHIFT;
+
+        let key_type: u32;
+        let value_type: u32;
+
+        if TypeId::of::<K>() == TypeId::of::<super::Bool>() {
+            key_type = 1;
+        } else if TypeId::of::<K>() == TypeId::of::<super::Int>() {
+            key_type = 2;
+        } else if TypeId::of::<K>() == TypeId::of::<super::Float>() {
+            key_type = 3;
+        } else if TypeId::of::<K>() == TypeId::of::<super::VariantString>() {
+            key_type = 4;
+        } else {
+            return Err("Cannot Encode Typed Dictionary with Unknown Key Type".to_string());
+        }
+
+        if TypeId::of::<V>() == TypeId::of::<super::Bool>() {
+            value_type = 1;
+        } else if TypeId::of::<V>() == TypeId::of::<super::Int>() {
+            value_type = 2;
+        } else if TypeId::of::<V>() == TypeId::of::<super::Float>() {
+            value_type = 3;
+        } else if TypeId::of::<V>() == TypeId::of::<super::VariantString>() {
+            value_type = 4;
+        } else {
+            return Err("Cannot Encode Typed Dictionary with Unknown Value Type".to_string());
+        }
 
         let mut encoded = header.to_le_bytes().to_vec();
+
+        encoded.extend(key_type.to_le_bytes());
+        encoded.extend(value_type.to_le_bytes());
 
         let count = self.len() as u32;
         encoded.extend((count & 0x7FFFFFFF).to_le_bytes());

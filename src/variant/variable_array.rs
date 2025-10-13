@@ -7,9 +7,7 @@ pub struct VariableArray(Vec<Arc<Box<dyn Variant>>>);
 impl Variant for VariableArray {
     // Replicated from encode_variant in marshalls.cpp
     fn encode(&self) -> Result<Vec<u8>, String> {
-        let header = 27u32;
-
-        // Todo: Check and Encode Key and Value Types Maybe?
+        let header = 28u32;
 
         let mut encoded = header.to_le_bytes().to_vec();
 

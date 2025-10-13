@@ -112,7 +112,6 @@ pub fn decode_and_decompress_variant(
 
     let variant_type = raw_bytes[0] & VARIANT_META_TYPE_MASK;
 
-    // TODO: Replicate Compressed Variants
     match variant_type {
         // BOOL
         1 => {

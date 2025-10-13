@@ -1,5 +1,3 @@
-// TODO: ADD RPC Parsing
-
 use crate::{
     GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},

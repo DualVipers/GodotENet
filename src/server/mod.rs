@@ -96,7 +96,6 @@ impl Server {
     pub async fn service(&mut self) -> Result<bool, String> {
         let host = self.get_mut_host()?;
 
-        // TODO: Try to finagle to while loop, borrowing issues currently blocking
         if let Some(event) = host.service().unwrap() {
             let enet_peer_id: ENetPeerID;
             let godot_enet_event_data;
@@ -162,7 +161,7 @@ impl Server {
                 let layer = &layers[i];
                 i += 1;
 
-                let result = layer.call(event.clone()).await; // TODO: Avoid clone?
+                let result = layer.call(event.clone()).await;
 
                 match result {
                     Ok(passed_event) => {

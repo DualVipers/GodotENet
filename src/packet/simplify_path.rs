@@ -14,7 +14,6 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 
     let remote_cache_id = u32::from_le_bytes([packet[34], packet[35], packet[36], packet[37]]);
 
-    // TODO: May want to cleanup path (leading /, etc.), need more research
     let path = clean_path(
         String::from_utf8(packet[38..].to_vec())
             .map_err(|_| "Failed to parse path as UTF-8".to_string())?,

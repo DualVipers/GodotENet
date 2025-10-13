@@ -60,7 +60,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 /// Generate a Godot ENet Packet from the provided data
 pub fn gen_packet(packet: &Packet) -> Result<Vec<u8>, String> {
     match packet {
-        Packet::NetworkCommandRemoteCall(header) => rpc::gen_packet(header, vec![]), // TODO: Implement Args
+        Packet::NetworkCommandRemoteCall(header) => rpc::gen_packet(header, vec![]),
         Packet::NetworkCommandSimplifyPath {
             methods_md5_hash, // 32 bytes
             remote_cache_id,
