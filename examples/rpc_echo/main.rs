@@ -1,9 +1,11 @@
 use godot_enet::{
-    self as gd_enet, AsyncLayer, ENetPeerID, LayerResult, name_id,
+    self as gd_enet, AsyncLayer, ENetPeerID, GDPeerID, LayerResult, name_id,
     packet::{Packet, outgoing},
     sort_names,
 };
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration, vec};
+
+const NAMES: [&str; 2] = sort_names!["rpc_testing", "abc"];
 
 #[tokio::main]
 async fn main() {
@@ -16,15 +18,16 @@ async fn main() {
     let mut path_cache_layer = gd_enet::layers::PathCacheLayer::default();
     path_cache_layer.consume_simplify_path = false;
 
-    const NAMES: [&str; 2] = sort_names!["rpc_testing", "abc"];
-
     let router = gd_enet::routers::RPCPathRouter::new();
     let function_router = gd_enet::routers::RPCFunctionNameRouter::new();
     function_router.register_name_id(
         name_id!("rpc_testing", NAMES),
         Arc::new(AsyncLayer::build(echo)),
     );
-    function_router.register_name_id(name_id!("abc", NAMES), Arc::new(AsyncLayer::build(echo)));
+    function_router.register_name_id(
+        name_id!("abc", NAMES),
+        Arc::new(AsyncLayer::build(send_abc)),
+    );
     router.register_path("NetworkButtons".to_string(), Arc::new(function_router));
 
     builder = builder
@@ -109,6 +112,64 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
                 name_id!("rpc_testing", NAMES)
             );
         }
+    }
+
+    return Ok(Some(event));
+}
+
+async fn send_abc(event: gd_enet::event::Event) -> LayerResult {
+    let Some(enet_peer_id) = event.data_pile.get::<gd_enet::ENetPeerID>() else {
+        return Err(
+            "send_abc called without ENetPeerID in DataPile, requires PeerMapLayer".to_string(),
+        );
+    };
+
+    let Some(gd_peer_id) = event.data_pile.get::<GDPeerID>() else {
+        return Err(
+            "send_abc called without Godot Peer ID in DataPile, requires PeerMapLayer".to_string(),
+        );
+    };
+
+    let Some(path_cache) = event.data_pile.get::<gd_enet::layers::PathCache>() else {
+        return Err(
+            "send_abc called without PathCache in DataPile, requires PathCacheLayer".to_string(),
+        );
+    };
+
+    let Some(path_id) = path_cache.get_id(gd_peer_id, "NetworkButtons") else {
+        return Err(format!(
+            "send_abc could not find path in cache for Godot Peer ID: {:?} with Path: NetworkButtons",
+            gd_peer_id
+        ));
+    };
+
+    log::info!(
+        "Sending 'abc' RPC to Node at Path: {} for Peer ID: {:?}",
+        path_id,
+        enet_peer_id
+    );
+
+    let args = vec![];
+
+    let rpc_command = gd_enet::packet::rpc::RPCCommandHeader {
+        node_id: path_id,
+        node_id_compression: 2,
+        name_id: name_id!("abc", NAMES),
+        name_id_compression: 0,
+
+        byte_only_or_no_args: false,
+    };
+
+    let outgoing_packet = gd_enet::packet::outgoing::OutgoingPacket {
+        peer_id: *enet_peer_id,
+        channel_id: 0,
+        packet: gd_enet::packet::outgoing::Packet::reliable(
+            gd_enet::packet::rpc::gen_packet(&rpc_command, args).unwrap(),
+        ),
+    };
+
+    if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
+        return Err(format!("Failed to transmit outgoing packet: {:?}", e));
     }
 
     return Ok(Some(event));

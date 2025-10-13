@@ -77,10 +77,16 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 }
 
 // Reverse of parse_packet
-pub fn gen_packet(packet: &RPCCommandHeader) -> Result<Vec<u8>, String> {
+pub fn gen_packet(
+    packet: &RPCCommandHeader,
+    args: Vec<Arc<Box<dyn Variant>>>,
+) -> Result<Vec<u8>, String> {
     let mut out_packet: Vec<u8> = Vec::new();
 
     let mut header_byte: u8 = 0;
+    if packet.byte_only_or_no_args {
+        header_byte |= BYTE_ONLY_OR_NO_ARGS_FLAG;
+    }
     header_byte |=
         (packet.node_id_compression << NODE_ID_COMPRESSION_SHIFT) & NODE_ID_COMPRESSION_FLAG;
     header_byte |=
@@ -111,7 +117,44 @@ pub fn gen_packet(packet: &RPCCommandHeader) -> Result<Vec<u8>, String> {
         _ => panic!("Invalid name_id_compression value"),
     }
 
-    // TODO: Generate Content of the Packet (Implement Parse First)
+    // Inverse of crate::layers::RPCParseLayer
+
+    if packet.byte_only_or_no_args {
+        if args.len() == 1 {
+            if let Some(pba) = args[0]
+                .as_any()
+                .downcast_ref::<crate::variant::PackedByteArray>()
+            {
+                out_packet.extend_from_slice(&pba.0);
+            } else {
+                return Err("RPC Command with byte_only_or_no_args set must have a single PackedByteArray argument".to_string());
+            }
+        } else if args.len() > 1 {
+            return Err("RPC Command with byte_only_or_no_args set must have a single PackedByteArray argument".to_string());
+        }
+    } else {
+        if args.len() > 255 {
+            return Err("RPC Command cannot have more than 255 arguments".to_string());
+        }
+        out_packet.push(args.len() as u8);
+
+        let mut i = 0;
+        let count = args.len();
+        for arg in args {
+            // TODO: Include Compression?
+            let mut encoded = arg.encode().map_err(|e| {
+                format!(
+                    "Failed to encode argument {} of {} in RPC Command: \n{}",
+                    i + 1,
+                    count,
+                    e
+                )
+            })?;
+
+            out_packet.append(&mut encoded);
+            i += 1;
+        }
+    }
 
     Ok(out_packet)
 }
