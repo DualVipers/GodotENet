@@ -13,7 +13,7 @@ impl<F> AsyncLayer<F>
 where
     F: Future<Output = LayerResult> + Sync + Send,
 {
-    /// Build a layer which calls an async function
+    /// Build a [`Layer`](crate::Layer) which calls an async function
     pub fn build(async_function: fn(Event) -> F) -> AsyncLayer<F> {
         AsyncLayer {
             func: async_function,

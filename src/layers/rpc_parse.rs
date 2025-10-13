@@ -10,7 +10,8 @@ use crate::{
 };
 use std::sync::Arc;
 
-/// A layer which automatically parses incoming rpc packets and adds the parsed rpc packet to the DataPile.
+/// A [`Layer`](crate::Layer) which automatically parses incoming rpc packets
+/// and adds the parsed rpc packet to the [`DataPile`](crate::DataPile).
 ///
 /// Depends on [`AutoParseLayer`](crate::layers::AutoParseLayer),
 /// [`PeerMapLayer`](crate::layers::PeerMapLayer),

@@ -41,7 +41,8 @@ impl PeerMap {
 }
 
 #[derive(Default, Clone)]
-/// A layer which maintains a mapping between ENet PeerIDs and Godot PeerIDs, adding the mapping to the DataPile.
+/// A [`Layer`](crate::Layer) which maintains a mapping between ENet PeerIDs and Godot PeerIDs,
+/// adding the mapping to the [`Datapile`](crate::DataPile).
 pub struct PeerMapLayer {
     peer_map: PeerMap,
 }

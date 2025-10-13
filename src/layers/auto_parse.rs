@@ -5,9 +5,10 @@ use crate::{
 };
 use log::debug;
 
-/// A layer which automatically parses incoming packets and adds the parsed packet to the DataPile.
+/// A [`Layer`](crate::Layer) which automatically parses incoming packets
+/// and adds the parsed packet to the [`DataPile`](crate::DataPile).
 ///
-/// Please note that this layer does not parse rpc packets fully as that requires more data,
+/// Please note that this [`Layer`](crate::Layer) does not parse rpc packets fully as that requires more data,
 /// use the [`RPCParseLayer`](crate::layers::RPCParseLayer) for that functionality.
 pub struct AutoParseLayer;
 

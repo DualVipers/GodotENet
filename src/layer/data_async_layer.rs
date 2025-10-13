@@ -19,7 +19,7 @@ where
     F: Future<Output = LayerResult> + Sync + Send,
     T: Sync + Send + 'static,
 {
-    /// Build a layer which calls a async function with data
+    /// Build a [`Layer`](crate::Layer) which calls a async function with data
     pub fn build(async_function: fn(Event, Arc<T>) -> F, data: T) -> DataAsyncLayer<F, T> {
         DataAsyncLayer {
             data: Arc::new(data),
@@ -28,7 +28,7 @@ where
         }
     }
 
-    /// Build a layer which calls a async function with data
+    /// Build a [`Layer`](crate::Layer) which calls a async function with data
     pub fn build_arc(async_function: fn(Event, Arc<T>) -> F, data: Arc<T>) -> DataAsyncLayer<F, T> {
         DataAsyncLayer {
             data,

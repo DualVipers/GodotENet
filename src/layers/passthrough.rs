@@ -1,6 +1,6 @@
 use crate::{Layer, LayerReturn, event::Event};
 
-/// A layer which simply passes the event to the next layer.
+/// A [`Layer`](crate::Layer) which simply passes the event to the next [`Layer`](crate::Layer).
 pub struct PassthroughLayer;
 
 impl Layer for PassthroughLayer {

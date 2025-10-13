@@ -16,7 +16,7 @@ impl<T> DataSyncLayer<T>
 where
     T: Sync + Send + 'static,
 {
-    /// Build a layer which calls a sync function with data
+    /// Build a [`Layer`](crate::Layer) which calls a sync function with data
     pub fn build(async_function: fn(Event, Arc<T>) -> LayerResult, data: T) -> DataSyncLayer<T> {
         DataSyncLayer {
             data: Arc::new(data),
@@ -25,7 +25,7 @@ where
         }
     }
 
-    /// Build a layer which calls a sync function with data
+    /// Build a [`Layer`](crate::Layer) which calls a sync function with data
     pub fn build_arc(
         async_function: fn(Event, Arc<T>) -> LayerResult,
         data: Arc<T>,

@@ -9,12 +9,12 @@ mod server;
 pub mod utils;
 pub mod variant;
 
-use std::ops::Deref;
-
 pub use data_pile::*;
 pub use dyn_helpers::*;
 pub use layer::*;
 pub use server::*;
+
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// The peer id within Godot

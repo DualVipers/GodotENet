@@ -137,7 +137,8 @@ impl PathCache {
 }
 
 #[derive(Clone)]
-/// A layer which maintains a path cache for each id, adding the cache to the DataPile.
+/// A [`Layer`](crate::Layer) which maintains a path cache for each id,
+/// adding the cache to the [`DataPile`](crate::DataPile).
 ///
 /// Depends on [`AutoParseLayer`](crate::layers::AutoParseLayer)
 /// and [`PeerMapLayer`](crate::layers::PeerMapLayer).

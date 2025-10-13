@@ -7,7 +7,7 @@ pub struct SyncLayer {
 }
 
 impl SyncLayer {
-    /// Build a layer which calls a sync function
+    /// Build a [`Layer`](crate::Layer) which calls a sync function
     pub fn build(async_function: fn(Event) -> LayerResult) -> SyncLayer {
         SyncLayer {
             func: async_function,
