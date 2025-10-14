@@ -1,6 +1,6 @@
 use godot_enet::{
-    self as gd_enet, AsyncLayer, ENetPeerID, GDPeerID, LayerResult, name_id,
-    packet::{Packet, outgoing},
+    self as gd_enet, AsyncLayer, ENetPeerID, GDPeerID, LayerResult, fn_layer_err, name_id,
+    packet::{Packet, outgoing, rpc::RPCCommand},
     sort_names,
 };
 use std::{sync::Arc, time::Duration, vec};
@@ -52,7 +52,10 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
     if let Some(parsed_packet) = event.data_pile.get::<Packet>() {
         if let Packet::NetworkCommandSimplifyPath { .. } = parsed_packet {
             let godot_enet::event::EventType::Receive { raw_packet, .. } = &event.event else {
-                return Err("Expected Receive event type".to_string());
+                return Err(fn_layer_err!(
+                    "Echo",
+                    "Expected Receive event type".to_string()
+                ));
             };
 
             let outgoing_packet = outgoing::OutgoingPacket {
@@ -62,7 +65,11 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
             };
 
             if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
-                return Err(format!("Failed to transmit outgoing packet: {:?}", e));
+                return Err(fn_layer_err!(
+                    "Echo",
+                    "Failed to transmit outgoing packet: {:?}",
+                    e
+                ));
             }
 
             return Ok(None);
@@ -84,7 +91,7 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
             }
 
             let godot_enet::event::EventType::Receive { raw_packet, .. } = &event.event else {
-                return Err("Expected Receive event type".to_string());
+                return Err(fn_layer_err!("Echo", "Expected Receive event type",));
             };
 
             let outgoing_packet = outgoing::OutgoingPacket {
@@ -94,7 +101,11 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
             };
 
             if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
-                return Err(format!("Failed to transmit outgoing packet: {:?}", e));
+                return Err(fn_layer_err!(
+                    "Echo",
+                    "Failed to transmit outgoing packet: {:?}",
+                    e
+                ));
             }
 
             log::info!(
@@ -119,25 +130,29 @@ async fn echo(event: gd_enet::event::Event) -> LayerResult {
 
 async fn send_abc(event: gd_enet::event::Event) -> LayerResult {
     let Some(enet_peer_id) = event.data_pile.get::<gd_enet::ENetPeerID>() else {
-        return Err(
-            "send_abc called without ENetPeerID in DataPile, requires PeerMapLayer".to_string(),
-        );
+        return Err(fn_layer_err!(
+            "SendABC",
+            "send_abc called without ENetPeerID in DataPile, requires PeerMapLayer".to_string()
+        ));
     };
 
     let Some(gd_peer_id) = event.data_pile.get::<GDPeerID>() else {
-        return Err(
-            "send_abc called without Godot Peer ID in DataPile, requires PeerMapLayer".to_string(),
-        );
+        return Err(fn_layer_err!(
+            "SendABC",
+            "send_abc called without Godot Peer ID in DataPile, requires PeerMapLayer".to_string()
+        ));
     };
 
     let Some(path_cache) = event.data_pile.get::<gd_enet::layers::PathCache>() else {
-        return Err(
-            "send_abc called without PathCache in DataPile, requires PathCacheLayer".to_string(),
-        );
+        return Err(fn_layer_err!(
+            "SendABC",
+            "send_abc called without PathCache in DataPile, requires PathCacheLayer".to_string()
+        ));
     };
 
     let Some(path_id) = path_cache.get_id(gd_peer_id, "NetworkButtons") else {
-        return Err(format!(
+        return Err(fn_layer_err!(
+            "SendABC",
             "send_abc could not find path in cache for Godot Peer ID: {:?} with Path: NetworkButtons",
             gd_peer_id
         ));
@@ -169,7 +184,11 @@ async fn send_abc(event: gd_enet::event::Event) -> LayerResult {
     };
 
     if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
-        return Err(format!("Failed to transmit outgoing packet: {:?}", e));
+        return Err(fn_layer_err!(
+            "SendABC",
+            "Failed to transmit outgoing packet: {:?}",
+            e
+        ));
     }
 
     return Ok(Some(event));

@@ -1,6 +1,7 @@
 use crate::{
     Layer, LayerReturn,
     event::Event,
+    layer_err,
     packet::{Packet, rpc::RPCCommand},
 };
 use dashmap::DashMap;
@@ -48,9 +49,9 @@ impl Layer for RPCPathRouter {
                     return Ok(Some(event));
                 }
             } else {
-                return Err(
-                    "RPCPathRouter ran without parsed packet, requires RPCParseLayer".to_string(),
-                );
+                return Err(layer_err!(
+                    "Ran without parsed packet, requires RPCParseLayer".to_string()
+                ));
             }
         });
     }

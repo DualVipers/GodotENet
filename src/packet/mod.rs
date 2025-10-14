@@ -77,3 +77,5 @@ pub fn gen_packet(packet: &Packet) -> Result<Vec<u8>, String> {
         Packet::NetworkCommandSys(packet) => sys::gen_packet(packet),
     }
 }
+
+// TODO: Custom Packet Parse Error?

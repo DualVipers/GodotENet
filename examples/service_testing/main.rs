@@ -1,5 +1,5 @@
 use godot_enet::{
-    self as gd_enet, AsyncLayer, ENetPeerID, LayerResult,
+    self as gd_enet, AsyncLayer, ENetPeerID, LayerResult, fn_layer_err,
     packet::{Packet, outgoing},
 };
 use std::time::Duration;
@@ -43,7 +43,11 @@ async fn testing(event: gd_enet::event::Event) -> LayerResult {
                 };
 
                 if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
-                    return Err(format!("Failed to transmit outgoing packet: {:?}", e));
+                    return Err(fn_layer_err!(
+                        "Testing",
+                        "Failed to transmit outgoing packet: {:?}",
+                        e
+                    ));
                 }
 
                 return Ok(Some(event));

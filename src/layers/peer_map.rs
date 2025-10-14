@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     ENetPeerID, GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
+    layer_err,
 };
 use dashmap::DashMap;
 use log::debug;
@@ -78,7 +79,7 @@ impl Layer for PeerMapLayer {
             if let Some(godot_peer_id) = godot_peer_id {
                 event.data_pile.insert(godot_peer_id);
             } else {
-                return Err(format!(
+                return Err(layer_err!(
                     "PeerMapLayer could not find Godot Peer ID for ENet Peer ID: {:?}",
                     event.peer_id
                 ));

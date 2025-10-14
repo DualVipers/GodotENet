@@ -71,7 +71,7 @@ macro_rules! sort_names {
             sorted_names
         }
 
-        sort_names([$($name),+])
+        sort_names([$($name),+]) // TODO: Replace with $crate::sort_names!([$($name),+]) if used outside this crate
     }};
 }
 
@@ -106,6 +106,6 @@ macro_rules! name_id {
             u32::MAX
         }
 
-        find_name($name, $names)
+        find_name($name, $names) // TODO: Replace with $crate::name_id!($name, $names) if used outside this crate
     }};
 }

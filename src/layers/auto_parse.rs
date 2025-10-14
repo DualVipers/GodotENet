@@ -1,6 +1,7 @@
 use crate::{
     Layer, LayerReturn,
     event::{Event, EventType},
+    layer_err,
     packet::Packet,
 };
 use log::debug;
@@ -19,12 +20,14 @@ impl Layer for AutoParseLayer {
                 return Ok(Some(event));
             };
 
-            let parsed_packet: Packet = crate::packet::parse_packet(raw_packet.data())?;
+            let parsed_packet: Packet = crate::packet::parse_packet(raw_packet.data())
+                .map_err(|e| layer_err!("Error Parsing Packet: {}", e))?;
 
             if let Ok(message) = str::from_utf8(raw_packet.data()) {
                 debug!("Received packet: {:?}", message);
             } else if let Err(error) = str::from_utf8(raw_packet.data()) {
                 debug!("Received non-UTF8 packet: {:?}", raw_packet.data());
+
                 debug!("UTF8 Error: {:?}", error);
             }
 

@@ -1,6 +1,7 @@
 use crate::{
     GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
+    layer_err,
     packet::{Packet, RemoteCacheID, confirm_path, outgoing},
 };
 use dashmap::DashMap;
@@ -178,17 +179,16 @@ impl Layer for PathCacheLayer {
                     let parsed_packet = match event.data_pile.get::<Packet>() {
                         Some(packet) => packet,
                         None => {
-                            return Err(
-                                "PathCacheLayer ran without parsed packet, requires AutoParseLayer"
-                                    .to_string(),
-                            );
+                            return Err(layer_err!(
+                                "Ran without parsed packet, requires AutoParseLayer".to_string()
+                            ));
                         }
                     };
 
                     let peer_id = match event.data_pile.get::<GDPeerID>() {
                         Some(peer_id) => peer_id,
                         None => {
-                            return Err("PathCacheLayer ran without Godot Peer ID in DataPile, requires PeerMapLayer".to_string());
+                            return Err(layer_err!("PathCacheLayer ran without Godot Peer ID in DataPile, requires PeerMapLayer".to_string()));
                         }
                     };
 
@@ -218,9 +218,10 @@ impl Layer for PathCacheLayer {
                         if let Err(e) =
                             cache.insert(peer_id, *remote_cache_id, path, methods_md5_hash)
                         {
-                            return Err(format!(
+                            return Err(layer_err!(
                                 "Failed to insert into path cache for Godot Peer {:?}: \n{}",
-                                peer_id, e
+                                peer_id,
+                                e
                             ));
                         }
 
@@ -230,9 +231,11 @@ impl Layer for PathCacheLayer {
                         ) {
                             Ok(packet) => packet,
                             Err(e) => {
-                                return Err(format!(
+                                return Err(layer_err!(
                                     "Failed to generate ConfirmPath response packet for Godot Peer {:?}, Remote Cache ID: {}: \n{}",
-                                    peer_id, remote_cache_id, e,
+                                    peer_id,
+                                    remote_cache_id,
+                                    e,
                                 ));
                             }
                         };
@@ -244,7 +247,7 @@ impl Layer for PathCacheLayer {
                         };
 
                         if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
-                            return Err(format!("Failed to send ConfirmPath packet: {:?}", e));
+                            return Err(layer_err!("Failed to send ConfirmPath packet: {:?}", e));
                         }
 
                         if consume_simplify_path {

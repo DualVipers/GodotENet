@@ -1,4 +1,7 @@
-use crate::{GDPeerID, Layer, LayerReturn, event::Event, layers::PathCache, packet::Packet};
+use crate::{
+    GDPeerID, Layer, LayerError, LayerReturn, event::Event, layer_err, layers::PathCache,
+    packet::Packet,
+};
 use dashmap::DashMap;
 use log::debug;
 use std::sync::Arc;
@@ -59,10 +62,9 @@ impl Layer for RPCFunctionSetRouter {
                     return Ok(Some(event));
                 }
             } else {
-                return Err(
-                    "RPCFunctionSetRouter ran without Path Cache or GDPeerID, requires PathCacheLayer"
-                        .to_string(),
-                );
+                return Err(layer_err!(
+                    "Ran without Path Cache or GDPeerID, requires PathCacheLayer".to_string()
+                ));
             }
         });
     }

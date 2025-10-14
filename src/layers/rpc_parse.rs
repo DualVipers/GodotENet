@@ -1,6 +1,7 @@
 use crate::{
     GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
+    layer_err,
     layers::PathCache,
     packet::{Packet, rpc::RPCCommand},
     utils::clean_path,
@@ -26,10 +27,9 @@ impl Layer for RPCParseLayer {
             let parsed_packet = match event.data_pile.get::<Packet>() {
                 Some(packet) => packet,
                 None => {
-                    return Err(
-                        "RPCParseLayer: PathCacheLayer ran without parsed packet, requires AutoParseLayer"
-                            .to_string(),
-                    );
+                    return Err(layer_err!(
+                        "Ran without parsed packet, requires AutoParseLayer".to_string()
+                    ));
                 }
             };
 
@@ -46,37 +46,47 @@ impl Layer for RPCParseLayer {
             if (header.node_id & 0x80000000) != 0 {
                 // Full Path Sent
                 if (offset) > raw_packet.data().len() {
-                    return Err(
-                        "RPCParseLayer: Full Path RPC Packet too short to contain full path"
-                            .to_string(),
-                    );
+                    return Err(layer_err!(
+                        "Full Path RPC Packet too short to contain full path".to_string()
+                    ));
                 }
 
                 path = clean_path(
-                    String::from_utf8(raw_packet.data()[offset..].to_vec())
-                        .map_err(|e| format!("Invalid UTF-8 in Full Path of RPC Packet: {}", e))?,
+                    String::from_utf8(raw_packet.data()[offset..].to_vec()).map_err(|e| {
+                        layer_err!("Invalid UTF-8 in Full Path of RPC Packet: {}", e)
+                    })?,
                 );
             } else {
                 let peer_id = match event.data_pile.get::<GDPeerID>() {
                     Some(peer_id) => peer_id,
                     None => {
-                        return Err("RPCParseLayer: Ran without Godot Peer ID in DataPile, requires PeerMapLayer".to_string());
+                        return Err(layer_err!(
+                            "Ran without Godot Peer ID in DataPile, requires PeerMapLayer"
+                                .to_string()
+                        ));
                     }
                 };
 
                 let path_cache = match event.data_pile.get::<PathCache>() {
                     Some(peer_id) => peer_id,
                     None => {
-                        return Err("RPCParseLayer: Ran without Path Cache in DataPile, requires PathCacheLayer".to_string());
+                        return Err(layer_err!(
+                            "Ran without Path Cache in DataPile, requires PathCacheLayer"
+                                .to_string()
+                        ));
                     }
                 };
 
-                path = path_cache.get_path(peer_id, &header.node_id).ok_or_else(|| {
+                path = path_cache
+                    .get_path(peer_id, &header.node_id)
+                    .ok_or_else(|| {
                         format!(
-                            "RPCParseLayer: Could not find path in cache for Godot Peer ID: {:?} with Node ID: {}",
+                            "Could not find path in cache for Godot Peer ID: {:?} with Node ID: {}",
                             peer_id, header.node_id
                         )
-                    })?.clone();
+                    })
+                    .map_err(|e| layer_err!("{}", e))?
+                    .clone();
             }
 
             // From Here On This Is Based on SceneRPCInterface::_process_rpc
@@ -85,9 +95,9 @@ impl Layer for RPCParseLayer {
                 + (1 << header.node_id_compression) as usize
                 + (1 << header.name_id_compression) as usize;
             if raw_packet.data().len() < packet_header_offset {
-                return Err(
-                    "RPCLayerParser: Packet Too Short to Contain Godot ENet RPC Packet".to_string(),
-                );
+                return Err(layer_err!(
+                    "Packet Too Short to Contain Godot ENet RPC Packet".to_string()
+                ));
             }
 
             let mut args: Vec<Arc<Box<dyn Variant>>> = Vec::new();
@@ -108,8 +118,8 @@ impl Layer for RPCParseLayer {
                 let mut i = 0;
                 while i < argc {
                     if offset >= raw_packet.data().len() {
-                        return Err(format!(
-                            "RPCParseLayer: Packet Too Short to Contain Argument {} of {}",
+                        return Err(layer_err!(
+                            "Packet Too Short to Contain Argument {} of {}",
                             i + 1,
                             argc
                         ));
@@ -120,8 +130,8 @@ impl Layer for RPCParseLayer {
                     ) {
                         Ok(result) => result,
                         Err(e) => {
-                            return Err(format!(
-                                "RPCParseLayer: Failed to decode and decompress variant {} of {} in RPC Packet: \n{}",
+                            return Err(layer_err!(
+                                "Failed to decode and decompress variant {} of {} in RPC Packet: \n{}",
                                 i + 1,
                                 argc,
                                 e

@@ -1,6 +1,8 @@
 use std::any::Any;
 use std::fmt::Debug;
 
+// TODO: Custom Variant Decode Error?
+
 pub trait Variant: Any + Send + Sync + Debug + crate::DynEq + crate::DynHash {
     fn encode(&self) -> Result<Vec<u8>, String>;
 

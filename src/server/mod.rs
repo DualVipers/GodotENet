@@ -169,10 +169,15 @@ impl Server {
                             return;
                         }
 
-                        event = passed_event.unwrap();
+                        event = match passed_event {
+                            Some(ev) => ev,
+                            None => return,
+                        };
                     }
                     Err(e) => {
-                        error!("Error processing event in layer: \n{}", e);
+                        error!("Error processing event: \n{}", e);
+
+                        return;
                     }
                 }
             }
