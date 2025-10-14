@@ -144,7 +144,7 @@ impl PathCache {
 /// Depends on [`AutoParseLayer`](crate::layers::AutoParseLayer)
 /// and [`PeerMapLayer`](crate::layers::PeerMapLayer).
 pub struct PathCacheLayer {
-    cache: PathCache,
+    cache: PathCache, // Todo: Handle Outgoing Cache
 
     pub consume_confirm_path: bool,
     pub consume_simplify_path: bool,

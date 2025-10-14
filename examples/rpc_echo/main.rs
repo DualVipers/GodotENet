@@ -179,7 +179,14 @@ async fn send_abc(event: gd_enet::event::Event) -> LayerResult {
         peer_id: *enet_peer_id,
         channel_id: 0,
         packet: gd_enet::packet::outgoing::Packet::reliable(
-            gd_enet::packet::rpc::gen_packet(&rpc_command, args).unwrap(),
+            gd_enet::packet::rpc::gen_packet_with_path(
+                &rpc_command,
+                &RPCCommand {
+                    path: "NetworkButtons".to_string(),
+                    args,
+                },
+            )
+            .unwrap(),
         ),
     };
 

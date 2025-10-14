@@ -5,6 +5,8 @@ pub mod rpc;
 pub mod simplify_path;
 pub mod sys;
 
+use crate::packet::rpc::RPCCommand;
+
 // From scene_multiplayer.h
 const CMD_MASK: u8 = 0x7;
 
@@ -60,7 +62,13 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 /// Generate a Godot ENet Packet from the provided data
 pub fn gen_packet(packet: &Packet) -> Result<Vec<u8>, String> {
     match packet {
-        Packet::NetworkCommandRemoteCall(header) => rpc::gen_packet(header, vec![]),
+        Packet::NetworkCommandRemoteCall(header) => rpc::gen_packet(
+            header,
+            &RPCCommand {
+                path: String::new(),
+                args: Vec::new(),
+            },
+        ),
         Packet::NetworkCommandSimplifyPath {
             methods_md5_hash, // 32 bytes
             remote_cache_id,

@@ -25,6 +25,7 @@ pub struct RPCCommand {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RPCCommandHeader {
+    // TODO: Convert to holding the Command in an Option?
     pub node_id_compression: u8,
     pub node_id: u32,
     pub name_id_compression: u8,
@@ -42,8 +43,8 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     let node_id_compression = (packet[0] & NODE_ID_COMPRESSION_FLAG) >> NODE_ID_COMPRESSION_SHIFT;
     let name_id_compression = (packet[0] & NAME_ID_COMPRESSION_FLAG) >> NAME_ID_COMPRESSION_SHIFT;
 
-    if packet.len() < 1 + (2 ^ node_id_compression as usize) + (2 ^ name_id_compression as usize) {
-        return Err("Packet too short to contain Godot ENet header".to_string());
+    if packet.len() < 1 + (1 << node_id_compression) + (1 << name_id_compression) {
+        return Err("Packet too short to contain Godot ENet RPC header".to_string());
     }
 
     let node_id: u32 = match node_id_compression {
@@ -60,7 +61,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
     let name_id: u32 = match name_id_compression {
         0 => packet[offset] as u32,
         1 => u16::from_le_bytes([packet[offset], packet[1 + offset]]) as u32,
-        _ => return Err("Invalid node_id_compression value".to_string()),
+        _ => return Err("Invalid name_id_compression value".to_string()),
     };
 
     // From SceneRPCInterface::_process_rpc
@@ -77,51 +78,48 @@ pub fn parse_packet(packet: &[u8]) -> Result<Packet, String> {
 }
 
 // Reverse of parse_packet
-pub fn gen_packet(
-    packet: &RPCCommandHeader,
-    args: Vec<Arc<Box<dyn Variant>>>,
-) -> Result<Vec<u8>, String> {
+pub fn gen_packet(header: &RPCCommandHeader, command: &RPCCommand) -> Result<Vec<u8>, String> {
     let mut out_packet: Vec<u8> = Vec::new();
 
     let mut header_byte: u8 = 0;
-    if packet.byte_only_or_no_args {
+    if header.byte_only_or_no_args {
         header_byte |= BYTE_ONLY_OR_NO_ARGS_FLAG;
     }
     header_byte |=
-        (packet.node_id_compression << NODE_ID_COMPRESSION_SHIFT) & NODE_ID_COMPRESSION_FLAG;
+        (header.node_id_compression << NODE_ID_COMPRESSION_SHIFT) & NODE_ID_COMPRESSION_FLAG;
     header_byte |=
-        (packet.name_id_compression << NAME_ID_COMPRESSION_SHIFT) & NAME_ID_COMPRESSION_FLAG;
+        (header.name_id_compression << NAME_ID_COMPRESSION_SHIFT) & NAME_ID_COMPRESSION_FLAG;
 
     out_packet.push(header_byte);
 
-    match packet.node_id_compression {
+    match header.node_id_compression {
         0 => {
-            out_packet.push(packet.node_id as u8);
+            out_packet.push(header.node_id as u8);
         }
         1 => {
-            out_packet.extend_from_slice(&(packet.node_id as u16).to_le_bytes());
+            out_packet.extend_from_slice(&(header.node_id as u16).to_le_bytes());
         }
         2 => {
-            out_packet.extend_from_slice(&packet.node_id.to_le_bytes());
+            out_packet.extend_from_slice(&header.node_id.to_le_bytes());
         }
         _ => panic!("Invalid node_id_compression value"),
     }
 
-    match packet.name_id_compression {
+    match header.name_id_compression {
         0 => {
-            out_packet.push(packet.name_id as u8);
+            out_packet.push(header.name_id as u8);
         }
         1 => {
-            out_packet.extend_from_slice(&(packet.name_id as u16).to_le_bytes());
+            out_packet.extend_from_slice(&(header.name_id as u16).to_le_bytes());
         }
         _ => panic!("Invalid name_id_compression value"),
     }
 
     // Inverse of crate::layers::RPCParseLayer
 
-    if packet.byte_only_or_no_args {
-        if args.len() == 1 {
-            if let Some(pba) = args[0]
+    if header.byte_only_or_no_args {
+        if command.args.len() == 1 {
+            if let Some(pba) = command.args[0]
                 .as_any()
                 .downcast_ref::<crate::variant::PackedByteArray>()
             {
@@ -129,18 +127,18 @@ pub fn gen_packet(
             } else {
                 return Err("RPC Command with byte_only_or_no_args set must have a single PackedByteArray argument".to_string());
             }
-        } else if args.len() > 1 {
+        } else if command.args.len() > 1 {
             return Err("RPC Command with byte_only_or_no_args set must have a single PackedByteArray argument".to_string());
         }
     } else {
-        if args.len() > 255 {
+        if command.args.len() > 255 {
             return Err("RPC Command cannot have more than 255 arguments".to_string());
         }
-        out_packet.push(args.len() as u8);
+        out_packet.push(command.args.len() as u8);
 
         let mut i = 0;
-        let count = args.len();
-        for arg in args {
+        let count = command.args.len();
+        for arg in &command.args {
             // TODO: Include Compression?
             let mut encoded = arg.encode().map_err(|e| {
                 format!(
@@ -155,6 +153,35 @@ pub fn gen_packet(
             i += 1;
         }
     }
+
+    Ok(out_packet)
+}
+
+// Reverse of parse_packet
+/// Does not use the packet's node_id and node_id_compression to allow encoding the given path
+pub fn gen_packet_with_path(
+    header: &RPCCommandHeader,
+    command: &RPCCommand,
+) -> Result<Vec<u8>, String> {
+    let mut out_packet = gen_packet(
+        &RPCCommandHeader {
+            node_id: 0x80000000,
+            node_id_compression: 2,
+
+            ..*header
+        },
+        command,
+    )?;
+
+    let new_node_id_bytes = ((0x80000000 | out_packet.len()) as u32).to_le_bytes();
+
+    out_packet[1] = new_node_id_bytes[0];
+    out_packet[2] = new_node_id_bytes[1];
+    out_packet[3] = new_node_id_bytes[2];
+    out_packet[4] = new_node_id_bytes[3];
+
+    out_packet.extend(command.path.as_bytes());
+    out_packet.push(0); // Null terminator
 
     Ok(out_packet)
 }
