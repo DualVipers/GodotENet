@@ -1,6 +1,6 @@
 use godot_enet::{
     self as gd_enet, AsyncLayer, ENetPeerID, GDPeerID, LayerResult, fn_layer_err, name_id,
-    packet::{Packet, outgoing, rpc::RPCCommand},
+    packet::{Packet, outgoing, rpc::smart_send_packet},
     sort_names,
 };
 use std::{sync::Arc, time::Duration, vec};
@@ -143,54 +143,34 @@ async fn send_abc(event: gd_enet::event::Event) -> LayerResult {
         ));
     };
 
-    let Some(path_cache) = event.data_pile.get::<gd_enet::layers::PathCache>() else {
+    let Some(outgoing_cache) = event.data_pile.get::<gd_enet::layers::OutgoingCache>() else {
         return Err(fn_layer_err!(
             "SendABC",
-            "send_abc called without PathCache in DataPile, requires PathCacheLayer".to_string()
+            "send_abc called without OutgoingCache in DataPile, requires PathCacheLayer"
+                .to_string()
         ));
     };
 
-    let Some(path_id) = path_cache.get_id(gd_peer_id, "NetworkButtons") else {
-        return Err(fn_layer_err!(
-            "SendABC",
-            "send_abc could not find path in cache for Godot Peer ID: {:?} with Path: NetworkButtons",
-            gd_peer_id
-        ));
-    };
+    let path = "NetworkButtons".to_string();
 
     log::info!(
         "Sending 'abc' RPC to Node at Path: {} for Peer ID: {:?}",
-        path_id,
+        path,
         enet_peer_id
     );
 
     let args = vec![];
 
-    let rpc_command = gd_enet::packet::rpc::RPCCommandHeader {
-        node_id: path_id,
-        node_id_compression: 2,
-        name_id: name_id!("abc", NAMES),
-        name_id_compression: 0,
-
-        byte_only_or_no_args: false,
-    };
-
-    let outgoing_packet = gd_enet::packet::outgoing::OutgoingPacket {
-        peer_id: *enet_peer_id,
-        channel_id: 0,
-        packet: gd_enet::packet::outgoing::Packet::reliable(
-            gd_enet::packet::rpc::gen_packet_with_path(
-                &rpc_command,
-                &RPCCommand {
-                    path: "NetworkButtons".to_string(),
-                    args,
-                },
-            )
-            .unwrap(),
-        ),
-    };
-
-    if let Err(e) = event.tx_outgoing.send(outgoing_packet) {
+    if let Err(e) = smart_send_packet(
+        path,
+        gd_enet::routers::hash_function_set(&["rpc_testing".to_string(), "abc".to_string()]),
+        args,
+        name_id!("abc", NAMES),
+        outgoing_cache,
+        &event.tx_outgoing,
+        gd_peer_id,
+        enet_peer_id,
+    ) {
         return Err(fn_layer_err!(
             "SendABC",
             "Failed to transmit outgoing packet: {:?}",

@@ -1,6 +1,5 @@
 use crate::{
-    GDPeerID, Layer, LayerError, LayerReturn, event::Event, layer_err, layers::PathCache,
-    packet::Packet,
+    GDPeerID, Layer, LayerReturn, event::Event, layer_err, layers::PathCache, packet::Packet,
 };
 use dashmap::DashMap;
 use log::debug;

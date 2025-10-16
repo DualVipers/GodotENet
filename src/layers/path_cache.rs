@@ -1,8 +1,8 @@
 use crate::{
-    GDPeerID, Layer, LayerReturn,
+    ENetPeerID, GDPeerID, Layer, LayerReturn,
     event::{Event, EventType},
     layer_err,
-    packet::{Packet, RemoteCacheID, confirm_path, outgoing},
+    packet::{Packet, RemoteCacheID, confirm_path, outgoing, simplify_path},
 };
 use dashmap::DashMap;
 use log::{debug, error};
@@ -137,6 +137,71 @@ impl PathCache {
     }
 }
 
+#[derive(Default, Clone)]
+pub struct OutgoingCache {
+    // TODO: Use Confirm Path To Set States (0, uncached, 1 cache sent, 2 confirmed)
+    pub cache: Arc<PathCache>,
+}
+
+impl OutgoingCache {
+    /// Gets the RemoteCacheID for the given path and peer.
+    /// If it does not exist, it will create a new entry in the cache
+    /// and return the new RemoteCacheID.
+    ///
+    /// The new RemoteCacheID may be delayed, so none is returned if a cache id is generated.
+    pub fn get_or_write_id(
+        &self,
+        gd_peer: &GDPeerID,
+        enet_peer: &ENetPeerID,
+        path: &str,
+        checksum: &str,
+        tx_outgoing: &std::sync::mpsc::Sender<outgoing::OutgoingPacket>,
+    ) -> Option<RemoteCacheID> {
+        match self.cache.get_id(gd_peer, path) {
+            Some(id) => Some(id),
+            None => {
+                let new_id: RemoteCacheID = rand::random::<u32>();
+
+                if let Err(e) = self.cache.insert(gd_peer, new_id, path, checksum) {
+                    error!(
+                        "Failed to insert new path cache entry for Godot Peer ID: {:?}, Path: {}: {}",
+                        gd_peer, path, e
+                    );
+                    return None;
+                }
+
+                let packet = match simplify_path::gen_packet(checksum, new_id, path) {
+                    Ok(packet) => packet,
+                    Err(e) => {
+                        error!(
+                            "Failed to generate SimplifyPath packet for Godot Peer ID: {:?}, Path: {}: {}",
+                            gd_peer, path, e
+                        );
+                        return None;
+                    }
+                };
+
+                let outgoing_packet = outgoing::OutgoingPacket {
+                    peer_id: *enet_peer,
+                    channel_id: 0,
+                    packet: outgoing::Packet::reliable(packet),
+                };
+
+                if let Err(e) = tx_outgoing.send(outgoing_packet) {
+                    error!(
+                        "Failed to send SimplifyPath packet for Godot Peer ID: {:?}, Ener Peer ID {:?}, Path: {}: {}",
+                        gd_peer, enet_peer, path, e
+                    );
+
+                    return None;
+                }
+
+                return None;
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 /// A [`Layer`](crate::Layer) which maintains a path cache for each id,
 /// adding the cache to the [`DataPile`](crate::DataPile).
@@ -144,7 +209,8 @@ impl PathCache {
 /// Depends on [`AutoParseLayer`](crate::layers::AutoParseLayer)
 /// and [`PeerMapLayer`](crate::layers::PeerMapLayer).
 pub struct PathCacheLayer {
-    cache: PathCache, // Todo: Handle Outgoing Cache
+    cache: PathCache,
+    outgoing_cache: OutgoingCache,
 
     pub consume_confirm_path: bool,
     pub consume_simplify_path: bool,
@@ -154,6 +220,7 @@ impl Default for PathCacheLayer {
     fn default() -> Self {
         Self {
             cache: PathCache::default(),
+            outgoing_cache: OutgoingCache::default(),
 
             consume_confirm_path: true,
             consume_simplify_path: true,
@@ -164,6 +231,7 @@ impl Default for PathCacheLayer {
 impl Layer for PathCacheLayer {
     fn call(&self, mut event: Event) -> LayerReturn {
         let cache = self.cache.clone();
+        let outgoing_cache = self.outgoing_cache.clone();
         let consume_confirm_path = self.consume_confirm_path;
         let consume_simplify_path = self.consume_simplify_path;
 
@@ -171,9 +239,11 @@ impl Layer for PathCacheLayer {
             match event.event {
                 EventType::Connect { ref godot_peer } => {
                     cache.create_cache_entry(godot_peer);
+                    outgoing_cache.cache.create_cache_entry(godot_peer);
                 }
                 EventType::Disconnect { ref godot_peer } => {
                     cache.remove_cache_entry(godot_peer);
+                    outgoing_cache.cache.remove_cache_entry(godot_peer);
                 }
                 EventType::Receive { .. } => {
                     let parsed_packet = match event.data_pile.get::<Packet>() {
@@ -258,6 +328,7 @@ impl Layer for PathCacheLayer {
             }
 
             event.data_pile.insert(cache);
+            event.data_pile.insert(outgoing_cache);
 
             return Ok(Some(event));
         });

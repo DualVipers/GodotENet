@@ -41,6 +41,8 @@ pub fn gen_packet(
 
     out_packet.extend(methods_md5_hash.as_bytes());
 
+    out_packet.push(0); // Null Terminator for methods_md5_hash
+
     out_packet.extend(&remote_cache_id.to_le_bytes());
 
     out_packet.extend(path.as_bytes());

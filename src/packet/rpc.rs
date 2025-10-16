@@ -1,6 +1,8 @@
 use super::Packet;
-use crate::variant::Variant;
+use crate::layers::OutgoingCache;
+use crate::{ENetPeerID, GDPeerID, packet::outgoing, variant::Variant};
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
 
 // From scene_rpc_interface.h
 const NODE_ID_COMPRESSION_SHIFT: u8 = 4;
@@ -184,4 +186,58 @@ pub fn gen_packet_with_path(
     out_packet.push(0); // Null terminator
 
     Ok(out_packet)
+}
+
+/// Processes and sends an RPC packet to a peer.
+///
+/// Depends on [`PathCacheLayer`](crate::layers::PathCacheLayer).
+pub fn smart_send_packet(
+    path: String,
+    checksum: String,
+    args: Vec<Arc<Box<dyn Variant>>>,
+    name_id: u32,
+    outgoing_cache: &OutgoingCache,
+    tx_outgoing: &Sender<outgoing::OutgoingPacket>,
+    gd_peer: &GDPeerID,
+    enet_peer: &ENetPeerID,
+) -> Result<(), String> {
+    let node_id: u32 =
+        match outgoing_cache.get_or_write_id(gd_peer, enet_peer, &path, &checksum, tx_outgoing) {
+            Some(id) => id,
+            None => 0x80000000,
+        };
+
+    let header = RPCCommandHeader {
+        node_id: node_id,
+        node_id_compression: 2,
+        name_id,
+        name_id_compression: 0,
+
+        byte_only_or_no_args: args.len() == 0
+            || (args.len() == 1
+                && args[0]
+                    .as_any()
+                    .downcast_ref::<crate::variant::PackedByteArray>()
+                    .is_some()),
+    };
+
+    let command = RPCCommand { path, args };
+
+    let packet_data = if node_id == 0x80000000 {
+        gen_packet_with_path(&header, &command)?
+    } else {
+        gen_packet(&header, &command)?
+    };
+
+    let outgoing_packet = outgoing::OutgoingPacket {
+        peer_id: *enet_peer,
+        channel_id: 0,
+        packet: outgoing::Packet::reliable(packet_data),
+    };
+
+    if let Err(e) = tx_outgoing.send(outgoing_packet) {
+        return Err(format!("Smart Send failed to send RPC Packet: {}", e));
+    }
+
+    return Ok(());
 }
