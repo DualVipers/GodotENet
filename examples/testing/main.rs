@@ -42,8 +42,9 @@ async fn main() {
                     }
 
                     if let gd_enet::packet::Packet::NetworkCommandSys(sys_packet) = parsed_packet {
-                        if let gd_enet::packet::sys::SysCommand::SysCommandRelay { content } =
-                            sys_packet.sys_cmd
+                        if let gd_enet::packet::sys::SysCommand::SysCommandRelay {
+                            content, ..
+                        } = sys_packet.sys_cmd
                         {
                             debug!(
                                 "Sending packet: {:?}\nTo: {:?}\nOn: {:?}\n",

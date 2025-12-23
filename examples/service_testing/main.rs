@@ -35,7 +35,9 @@ async fn testing(event: gd_enet::event::Event) -> LayerResult {
         if let Packet::NetworkCommandSys(packet) = parsed_packet {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
-            if let gd_enet::packet::sys::SysCommand::SysCommandRelay { content } = &packet.sys_cmd {
+            if let gd_enet::packet::sys::SysCommand::SysCommandRelay { content, .. } =
+                &packet.sys_cmd
+            {
                 let outgoing_packet = outgoing::OutgoingPacket {
                     peer_id: ENetPeerID(0),
                     channel_id: 0,
